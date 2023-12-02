@@ -1,32 +1,37 @@
-const express = require('express')
-const bodyParser = require('body-parser')
-const cors = require('cors')
-
+const express = require('express');
+const bodyParser = require('body-parser');
+const cors = require('cors');
 
 // Require dotenv
-require('dotenv').config()
+require('dotenv').config();
 
 // Initialize App
-const app = express()
+const app = express();
 
 // Parse incoming JSON requests
-app.use(bodyParser.json())
-app.use(bodyParser.urlencoded({ extended: false }))
+app.use(bodyParser.json());
+app.use(bodyParser.urlencoded({ extended: false }));
 
 // Use Cors
-app.use(cors())
+app.use(cors());
+// app.use(cors({ credentials: true, origin: 'http://192.168.1.36:5173' }));
+
+// Handle images
+app.use('/uploads', express.static('uploads'));
 
 // Routes
-const authRoutes = require('./routes/authRoutes')
+const authRoutes = require('./routes/authRoutes');
+const productRoutes = require('./routes/productRoutes');
 
 // Use Routes
-app.use('/api/auth', authRoutes)
+app.use('/auth', authRoutes);
+app.use('/product', productRoutes);
 
 // Listen Port
-const port = process.env.PORT
-const environment = process.env.ENVIRONMENT
+const port = process.env.PORT;
+const environment = process.env.ENVIRONMENT;
 app.listen(port, () => {
-  console.log(`App listening on port ${port}`)
-  console.log(`App listening on env ${environment}`)
-  console.log(`Press Ctrl+C to quit.`)
-})
+  console.log(`App listening on port ${port}`);
+  console.log(`App listening on env ${environment}`);
+  console.log(`Press Ctrl+C to quit.`);
+});
