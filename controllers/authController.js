@@ -131,7 +131,7 @@ const login = async (req, res) => {
         console.log(loginResult[0]);
 
         const token = jwt.sign(
-          { username: loginResult.user_id },
+          { userId: loginResult[0].user_id },
           process.env.JWT_SECRET,
           {
             expiresIn: '60m',
@@ -154,7 +154,7 @@ const login = async (req, res) => {
 };
 
 // verifyEmail Function
-const verifyEmail = async (req, res) => {
+const patchVerifyEmail = async (req, res) => {
   const { email_verify_token } = req.body;
 
   if (!email_verify_token) {
@@ -166,13 +166,61 @@ const verifyEmail = async (req, res) => {
       .select('user_id')
       .where('email_verify_token', email_verify_token);
 
-    const verify = await db('users')
-      .where('user_id', getUser[0].user_id)
-      .update({
-        email_verify_token: null,
-        email_verify: 1,
-      });
-    res.status(200).json({ message: 'Successfully verified email.' });
+    if (getUser[0]) {
+      console.log('istrue');
+      const verify = await db('users')
+        .where('user_id', getUser[0].user_id)
+        .update({
+          email_verify_token: null,
+          email_verify: 1,
+        });
+      res.status(200).json({ message: 'Successfully verified email.' });
+    } else {
+      res.status(404).json({ message: "Token doesn't exist." });
+    }
+  } catch (err) {
+    console.log(err);
+    return res.status(500).json({ message: err });
+  }
+};
+
+const getVerifyEmail = async (req, res) => {
+  try {
+    const getUser = await db('users')
+      .select('user_id')
+      .where('user_id', req.userId);
+
+    res.status(200).json(getUser[0]);
+  } catch (err) {
+    console.log(err);
+    return res.status(500).json({ message: err });
+  }
+};
+
+const getAccount = async (req, res) => {
+  try {
+    let query = db('users');
+
+    // if (product_id) {
+    //   query = query.where('products.product_id', product_id);
+    // }
+
+    // if (username) {
+    //   query = query
+    //     .where('users.username', username)
+    //     .leftJoin('users', 'products.user_id', 'users.user_id');
+    // }
+
+    query
+      .select(
+        db.raw(
+          `users.username, users.ban_status, email_verify, CONCAT("${process.env.PRODUCT_LINK_PATH}", users.profile_picture) as profile_picture`
+        )
+      )
+      .where('user_id', req.userId);
+
+    const account = await query;
+    return res.status(200).json(account[0]);
   } catch (err) {
     console.log(err);
     return res.status(500).json({ message: err });
@@ -182,5 +230,7 @@ const verifyEmail = async (req, res) => {
 module.exports = {
   register,
   login,
-  verifyEmail,
+  patchVerifyEmail,
+  getAccount,
+  getVerifyEmail,
 };

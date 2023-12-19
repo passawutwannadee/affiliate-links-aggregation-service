@@ -22,10 +22,12 @@ app.use('/uploads', express.static('uploads'));
 // Routes
 const authRoutes = require('./routes/authRoutes');
 const productRoutes = require('./routes/productRoutes');
+const userRoutes = require('./routes/userRoutes');
 
 // Use Routes
 app.use('/auth', authRoutes);
-app.use('/product', productRoutes);
+app.use('/products', productRoutes);
+app.use('/users', userRoutes);
 
 // Listen Port
 const port = process.env.PORT;

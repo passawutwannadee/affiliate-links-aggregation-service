@@ -7,12 +7,12 @@ const upload = multer(multerConfig.config).single(multerConfig.keyUpload);
 const getProducts = async (req, res) => {
   try {
     const product_id = req.query.product_id;
-    const user_id = req.query.user_id;
+    const username = req.query.username;
 
-    if (!user_id && !product_id) {
+    if (!username && !product_id) {
       return res
         .status(400)
-        .json({ error: 'user_id or product_id are required' });
+        .json({ error: 'username or product_id are required' });
     }
 
     let query = db('products');
@@ -21,8 +21,10 @@ const getProducts = async (req, res) => {
       query = query.where('products.product_id', product_id);
     }
 
-    if (user_id) {
-      query = query.where('products.user_id', user_id);
+    if (username) {
+      query = query
+        .where('users.username', username)
+        .leftJoin('users', 'products.user_id', 'users.user_id');
     }
 
     query
@@ -33,7 +35,7 @@ const getProducts = async (req, res) => {
       )
       .select(
         db.raw(
-          'products.product_id, products.product_name, products.product_description, products.product_image, products.category_id , GROUP_CONCAT(product_links.link) as links'
+          `products.product_id, products.product_name, products.product_description, CONCAT("${process.env.PRODUCT_LINK_PATH}", products.product_image) as product_image, products.category_id , GROUP_CONCAT(product_links.link) as links`
         )
       )
       .groupBy('products.product_id');
