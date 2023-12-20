@@ -1,6 +1,6 @@
 const db = require('../database/db');
 const multer = require('multer');
-const multerConfig = require('../utils/multer-product-config');
+const multerConfig = require('../utils/multer-user-config');
 const upload = multer(multerConfig.config).single(multerConfig.keyUpload);
 
 // Get products

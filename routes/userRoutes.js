@@ -5,5 +5,11 @@ const authMiddleware = require('../middlewares/authMiddleware');
 
 // Get Products
 router.get('/', userController.getUsers);
+// Edit Profile Picture
+router.patch(
+  '/profile_picture',
+  authMiddleware.privateMiddleware,
+  userController.editProfilePicture
+);
 
 module.exports = router;
