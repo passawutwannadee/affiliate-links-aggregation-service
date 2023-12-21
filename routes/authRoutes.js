@@ -7,8 +7,20 @@ const authMiddleware = require('../middlewares/authMiddleware');
 router.post('/register', authController.register);
 // Login
 router.post('/login', authController.login);
+//Change Password
+router.patch(
+  '/password',
+  authMiddleware.privateMiddleware,
+  authController.changePassword
+);
+// Send Email
+router.post(
+  '/verify-email',
+  authMiddleware.privateMiddleware,
+  authController.sendVerifyEmail
+);
 // Verify Email
-router.patch('/verifyEmail', authController.patchVerifyEmail);
+router.patch('/verify-email', authController.patchVerifyEmail);
 // Get Account
 router.get(
   '/account',

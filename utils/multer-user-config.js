@@ -6,6 +6,7 @@ module.exports = multerConfig = {
     storage: multer.diskStorage({
       destination: (req, file, next) => {
         const folder = './uploads/images/users';
+        console.log(req.userId);
         if (!fs.existsSync(folder)) {
           fs.mkdirSync(folder);
         }
@@ -13,7 +14,7 @@ module.exports = multerConfig = {
       },
       filename: (req, file, next) => {
         const ext = file.mimetype.split('/')[1];
-        next(null, `${file.fieldname}-${Date.now()}.${ext}`);
+        next(null, `${file.fieldname}-${req.userId}.${ext}`);
       },
     }),
     // limits: { fileSize: 1024 * 1024 * 5 },

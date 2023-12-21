@@ -11,5 +11,11 @@ router.patch(
   authMiddleware.privateMiddleware,
   userController.editProfilePicture
 );
+// Edit Profile Picture
+router.patch(
+  '/profile',
+  authMiddleware.privateMiddleware,
+  userController.editProfile
+);
 
 module.exports = router;

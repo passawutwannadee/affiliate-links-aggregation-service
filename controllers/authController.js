@@ -66,7 +66,7 @@ const register = async (req, res) => {
         from: process.env.EMAIL_USER, // Your email address
         to: email,
         subject: 'Email Verification',
-        text: `To verify your email, click the following link: http://your-website.com/verify/${email_verify_token}`,
+        text: `To verify your email, click the following link: ${process.env.SITE_URL}/verify-email/${email_verify_token}`,
       };
 
       transporter.sendMail(mailOptions, (error, info) => {
@@ -153,6 +153,87 @@ const login = async (req, res) => {
   }
 };
 
+const changePassword = async (req, res) => {
+  const { old_password, new_password } = req.body;
+
+  try {
+    // get user's password from db
+    const queryPassword = await db('users')
+      .select('*')
+      .where('user_id', req.userId);
+
+    const passwordResult = await bcrypt.compare(
+      old_password,
+      queryPassword[0]?.password
+    );
+
+    if (!passwordResult) {
+      res.status(400).send({ status: 400, message: 'Incorrect password' });
+    }
+
+    if (passwordResult) {
+      // Password complexity regex pattern
+      // Password must be at least 8 characters long and contain at least one number, one lowercase letter, one uppercase letter, and one symbol (@$!%*?&)
+      const passwordPattern =
+        /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
+
+      // Check if the password meets the complexity requirements
+      if (!passwordPattern.test(new_password)) {
+        return res.status(400).json({
+          status: 400,
+          message:
+            'Password must be at least 8 characters long and contain at least one number, one lowercase letter, one uppercase letter, and one symbol (@$!%*?&)',
+        });
+      }
+
+      // salt password 10 rounds
+      const hashedPassword = await bcrypt.hash(new_password, 10);
+
+      await db('users')
+        .update({ password: hashedPassword })
+        .where('user_id', req.userId);
+
+      return res
+        .status(200)
+        .json({ status: 200, message: 'Password changed successfully' });
+    }
+  } catch (err) {
+    return res.status(500).json(err);
+  }
+};
+
+const sendVerifyEmail = async (req, res) => {
+  try {
+    const getToken = await db('users')
+      .select('email_verify_token', 'email')
+      .where('user_id', req.userId);
+
+    console.log(getToken[0] === 1);
+
+    // Send a verification email to the user
+    const mailOptions = {
+      from: process.env.EMAIL_USER, // Your email address
+      to: getToken[0].email,
+      subject: 'Email Verification',
+      text: `To verify your email, click the following link: ${process.env.SITE_URL}/verify-email/${getToken[0].email_verify_token}`,
+    };
+
+    transporter.sendMail(mailOptions, (error, info) => {
+      if (error) {
+        return res.status(500).json({
+          message: 'An error occurred while sending the verification email',
+        });
+      }
+
+      return res.status(201).json({
+        message: 'Check your email for verification.',
+      });
+    });
+  } catch (err) {
+    return res.status(500).json({ message: err });
+  }
+};
+
 // verifyEmail Function
 const patchVerifyEmail = async (req, res) => {
   const { email_verify_token } = req.body;
@@ -214,7 +295,7 @@ const getAccount = async (req, res) => {
     query
       .select(
         db.raw(
-          `users.username, users.ban_status, email_verify, CONCAT("${process.env.PRODUCT_LINK_PATH}", users.profile_picture) as profile_picture`
+          `users.username, users.ban_status, email_verify, CONCAT("${process.env.USER_LINK_PATH}", users.profile_picture) as profile_picture`
         )
       )
       .where('user_id', req.userId);
@@ -230,6 +311,8 @@ const getAccount = async (req, res) => {
 module.exports = {
   register,
   login,
+  changePassword,
+  sendVerifyEmail,
   patchVerifyEmail,
   getAccount,
   getVerifyEmail,

@@ -27,7 +27,7 @@ const getUsers = async (req, res) => {
     query
       .select(
         db.raw(
-          `display_name, username, CONCAT_WS("${process.env.PRODUCT_LINK_PATH}", profile_picture) as profile_picture`
+          `display_name, username, CONCAT_WS("${process.env.USER_LINK_PATH}", profile_picture) as profile_picture`
         )
       )
       .from('users')
@@ -71,7 +71,7 @@ const editProfilePicture = async (req, res) => {
           });
         } catch (err) {
           console.error('Error updating profile picture: ', err);
-          res.sendStatus(500);
+          res.status(500).json(err);
         }
       }
     });
@@ -101,11 +101,37 @@ const editProfilePicture = async (req, res) => {
       updateProfilePicture();
     }
   } catch (err) {
-    res.json(err);
+    res.status(500).json(err);
   }
+};
+
+const editProfile = async (req, res) => {
+  const { display_name } = req.body;
+
+  if (!display_name) {
+    return res.status(400).json({ message: 'All fields are required' });
+  }
+
+  try {
+    const profile_data = {
+      display_name: display_name,
+    };
+
+    console.log(req.userId);
+
+    await db('users').update(profile_data).where('user_id', req.userId);
+  } catch (err) {
+    res.status(500).json(err);
+  }
+
+  res.json({
+    status: 200,
+    message: 'Profile updated successfully',
+  });
 };
 
 module.exports = {
   getUsers,
   editProfilePicture,
+  editProfile,
 };
