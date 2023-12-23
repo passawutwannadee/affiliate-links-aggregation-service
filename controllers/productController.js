@@ -18,26 +18,40 @@ const getProducts = async (req, res) => {
     let query = db('products');
 
     if (product_id) {
-      query = query.where('products.product_id', product_id);
+      query = query
+        .where('products.product_id', product_id)
+        .leftJoin(
+          'product_links',
+          'products.product_id',
+          'product_links.product_id'
+        )
+        .select(
+          db.raw(
+            `products.product_id, products.product_name, users.display_name, CONCAT("${process.env.USER_LINK_PATH}", 
+          users.profile_picture) as profile_picture, products.product_description, CONCAT("${process.env.PRODUCT_LINK_PATH}", 
+          products.product_image) as product_image, products.category_id , GROUP_CONCAT(product_links.link) as links`
+          )
+        );
     }
 
     if (username) {
       query = query
         .where('users.username', username)
-        .leftJoin('users', 'products.user_id', 'users.user_id');
+        .leftJoin(
+          'product_links',
+          'products.product_id',
+          'product_links.product_id'
+        )
+        .select(
+          db.raw(
+            `products.product_id, products.product_name, products.product_description, CONCAT("${process.env.PRODUCT_LINK_PATH}", 
+            products.product_image) as product_image, products.category_id , GROUP_CONCAT(product_links.link) as links`
+          )
+        );
     }
 
     query
-      .leftJoin(
-        'product_links',
-        'products.product_id',
-        'product_links.product_id'
-      )
-      .select(
-        db.raw(
-          `products.product_id, products.product_name, products.product_description, CONCAT("${process.env.PRODUCT_LINK_PATH}", products.product_image) as product_image, products.category_id , GROUP_CONCAT(product_links.link) as links`
-        )
-      )
+      .leftJoin('users', 'products.user_id', 'users.user_id')
       .groupBy('products.product_id');
 
     const products = await query;
