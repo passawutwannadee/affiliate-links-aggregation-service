@@ -134,19 +134,38 @@ const login = async (req, res) => {
           { userId: loginResult[0].user_id },
           process.env.JWT_SECRET,
           {
-            expiresIn: '60m',
+            expiresIn: '24h',
           }
         );
-        res.cookie('token', token, {
-          httpOnly: true,
-          secure: true,
-          sameSite: 'Strict',
-        });
-        res
+        return res
           .status(200)
+          .cookie('auth', token, {
+            httpOnly: true,
+            path: '/',
+            expires: new Date(Date.now() + 24 * 60 * 60 * 1000),
+            secure: true,
+            sameSite: 'None',
+          })
           .json({ login: true, token: token, result: loginResult[0] });
       }
     }
+  } catch (err) {
+    console.log(err);
+    return res.status(500).json({ message: err });
+  }
+};
+
+// Login Function
+const logout = async (req, res) => {
+  try {
+    res.clearCookie('auth', {
+      httpOnly: true,
+      expires: new Date(0),
+      secure: true,
+      sameSite: 'None',
+    });
+
+    res.status(200).json({ message: 'Logout successful' });
   } catch (err) {
     console.log(err);
     return res.status(500).json({ message: err });
@@ -311,6 +330,7 @@ const getAccount = async (req, res) => {
 module.exports = {
   register,
   login,
+  logout,
   changePassword,
   sendVerifyEmail,
   patchVerifyEmail,

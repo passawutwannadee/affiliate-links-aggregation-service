@@ -27,17 +27,23 @@ const getUsers = async (req, res) => {
     query
       .select(
         db.raw(
-          `display_name, username, CONCAT_WS("${process.env.USER_LINK_PATH}", profile_picture) as profile_picture`
+          `display_name, username, CONCAT_WS("","${process.env.USER_LINK_PATH}", profile_picture) as profile_picture`
         )
       )
       .from('users')
       .where('username', username);
 
     const users = await query;
-    res.json(users[0]);
+
+    if (users.length === 0) {
+      return res.status(404).json({ status: 404, message: 'User not found.' });
+    }
+    if (users.length === 1) {
+      return res.json(users[0]);
+    }
   } catch (err) {
     console.log(err);
-    res.status(500).json(err);
+    return res.status(500).json(err);
   }
 };
 

@@ -1,7 +1,9 @@
 const db = require('../database/db');
 const multer = require('multer');
-const multerConfig = require('../utils/multer-user-config');
+const multerConfig = require('../utils/multer-product-config');
 const upload = multer(multerConfig.config).single(multerConfig.keyUpload);
+const fs = require('fs');
+const path = require('path');
 
 // Get products
 const getProducts = async (req, res) => {
@@ -27,7 +29,7 @@ const getProducts = async (req, res) => {
         )
         .select(
           db.raw(
-            `products.product_id, products.product_name, users.display_name, CONCAT("${process.env.USER_LINK_PATH}", 
+            `products.product_id, products.product_name, users.display_name, users.username, CONCAT("${process.env.USER_LINK_PATH}", 
           users.profile_picture) as profile_picture, products.product_description, CONCAT("${process.env.PRODUCT_LINK_PATH}", 
           products.product_image) as product_image, products.category_id , GROUP_CONCAT(product_links.link) as links`
           )
@@ -62,12 +64,26 @@ const getProducts = async (req, res) => {
 
     res.json(products);
   } catch (err) {
-    console.error('Error storing product in the database: ', err);
+    console.error('Error getting product from the database: ', err);
     res.sendStatus(500);
   }
 };
 
-// Product function
+// Get products
+const getProductCategories = async (req, res) => {
+  try {
+    const getCategories = await db('categories').select(
+      'category_id',
+      'category_name'
+    );
+
+    return res.status(200).json(getCategories);
+  } catch (err) {
+    return res.status(500).json({ message: 'Internal Server Error.' });
+  }
+};
+
+// Create products
 const createProduct = async (req, res) => {
   upload(req, res, async (err) => {
     if (err instanceof multer.MulterError) {
@@ -81,13 +97,40 @@ const createProduct = async (req, res) => {
         const {
           product_name,
           product_description,
-          user_id,
           category_id,
           product_links,
         } = req.body;
 
-        if (!product_name || !product_description || !user_id || !category_id) {
-          return res.status(400).json({ message: 'All fields are required' });
+        if (!product_name || !product_description || !category_id) {
+          const product_image = req.file ? req.file.filename : null;
+
+          const filePath = path.join(
+            './uploads/images/products',
+            product_image
+          );
+
+          if (fs.existsSync(filePath)) {
+            // Delete the file
+            fs.unlink(filePath, (err) => {
+              if (err) {
+                console.error(`Error deleting file: ${err}`);
+                console.error('Error storing product in the database: ', err);
+
+                return res
+                  .status(400)
+                  .json({ message: 'All fields are required' });
+              } else {
+                console.log(
+                  `File ${product_image} has been successfully deleted.`
+                );
+                console.error('Error storing product in the database: ', err);
+
+                return res
+                  .status(400)
+                  .json({ message: 'All fields are required' });
+              }
+            });
+          }
         }
 
         const product_image = req.file ? req.file.filename : null;
@@ -97,7 +140,7 @@ const createProduct = async (req, res) => {
           product_name: product_name,
           product_description: product_description,
           product_image: product_image,
-          user_id: user_id,
+          user_id: req.userId,
           category_id: category_id,
         };
 
@@ -115,40 +158,100 @@ const createProduct = async (req, res) => {
           const insertLinkResult = await db('product_links').insert(link_data);
         }
 
-        res.json({
-          status: 'ok',
+        return res.status(201).json({
+          status: 201,
           message: 'Product created successfully',
         });
       } catch (err) {
-        console.error('Error storing product in the database: ', err);
-        res.sendStatus(500);
+        const product_image = req.file ? req.file.filename : null;
+
+        const filePath = path.join('./uploads/images/products', product_image);
+
+        if (fs.existsSync(filePath)) {
+          // Delete the file
+          fs.unlink(filePath, (err) => {
+            if (err) {
+              console.error(`Error deleting file: ${err}`);
+              console.error('Error storing product in the database: ', err);
+              res.sendStatus(500);
+            } else {
+              console.log(
+                `File ${product_image} has been successfully deleted.`
+              );
+              console.error('Error storing product in the database: ', err);
+              res.sendStatus(500);
+            }
+          });
+        }
       }
     }
   });
 };
 
-// verifyEmail Function
-const updateProduts = async (req, res) => {
-  const { email_verify_token } = req.body;
+// Edit products
+const editProducts = async (req, res) => {
+  try {
+    return res.status(200).json(getCategories);
+  } catch (err) {
+    return res.status(500).json({ message: 'Internal Server Error.' });
+  }
+};
 
-  if (!email_verify_token) {
+// Remove products
+const removeProducts = async (req, res) => {
+  const productId = req.query.id;
+
+  if (!productId) {
     return res.status(400).json({ message: 'All fields are required' });
   }
 
   try {
-    const getUser = await db('users')
-      .select('user_id')
-      .where('email_verify_token', email_verify_token);
+    const getProductPicture = await db('products')
+      .select('product_image')
+      .where('product_id', productId);
 
-    const verify = await db('users')
-      .where('user_id', getUser[0].user_id)
-      .update({
-        email_verify_token: null,
-        email_verify: 1,
-      });
-    res.status(200).json({ message: 'Successfully verified email.' });
+    console.log(getProductPicture);
+
+    if (!getProductPicture[0]) {
+      return res.status(204).json({ message: 'Product not found' });
+    }
+
+    if (getProductPicture[0]) {
+      const productImage = getProductPicture[0].product_image;
+
+      const filePath = path.join('./uploads/images/products', productImage);
+
+      const deleteProduct = await db('products')
+        .del()
+        .where('product_id', productId)
+        .where('products.user_id', req.userId);
+
+      if (deleteProduct === 0) {
+        return res.status(204).json({ message: 'Product not found' });
+      }
+
+      if (deleteProduct === 1) {
+        if (fs.existsSync(filePath)) {
+          // Delete the file
+          fs.unlink(filePath, (err) => {
+            if (err) {
+              console.error(`Error deleting file: ${err}`);
+            } else {
+              console.log(
+                `File ${productImage} has been successfully deleted.`
+              );
+            }
+          });
+        } else {
+          console.log(`File ${productImage} does not exist.`);
+        }
+        return res
+          .status(200)
+          .json({ message: 'Successfully deleted product.' });
+      }
+    }
   } catch (err) {
-    console.log(err);
+    console.error('Error deleting product from the database: ', err);
     return res.status(500).json({ message: err });
   }
 };
@@ -156,4 +259,6 @@ const updateProduts = async (req, res) => {
 module.exports = {
   getProducts,
   createProduct,
+  removeProducts,
+  getProductCategories,
 };
