@@ -10,6 +10,13 @@ router.post(
   collectionController.createCollections
 );
 
+// Create collections
+router.put(
+  '/',
+  authMiddleware.privateMiddleware,
+  collectionController.manageCollection
+);
+
 // get collections
 router.get('/', collectionController.getCollections);
 

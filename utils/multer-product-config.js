@@ -13,7 +13,17 @@ module.exports = multerConfig = {
       },
       filename: (req, file, next) => {
         const ext = file.mimetype.split('/')[1];
-        next(null, `${file.fieldname}-${Date.now()}.${ext}`);
+        const date = new Date();
+        console.log('uploaded');
+        next(
+          null,
+          `${file.fieldname}-${
+            req.userId
+          }-${date.getFullYear()}-${date.getMonth()}-${date.getDate()}-${date
+            .toTimeString()
+            .split(' ')[0]
+            .replaceAll(':', '-')}.${ext}`
+        );
       },
     }),
     // limits: { fileSize: 1024 * 1024 * 5 },
