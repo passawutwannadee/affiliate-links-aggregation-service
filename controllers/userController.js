@@ -90,18 +90,22 @@ const editProfilePicture = async (req, res) => {
 
     const profilePicture = getProfilePicture[0].profile_picture;
 
-    const filePath = path.join('./uploads/images/users', profilePicture);
+    if (profilePicture) {
+      const filePath = path.join('./uploads/images/users', profilePicture);
 
-    if (fs.existsSync(filePath)) {
-      // Delete the file
-      fs.unlink(filePath, (err) => {
-        if (err) {
-          console.error(`Error deleting file: ${err}`);
-        } else {
-          console.log(`File ${profilePicture} has been successfully deleted.`);
-          updateProfilePicture();
-        }
-      });
+      if (fs.existsSync(filePath)) {
+        // Delete the file
+        fs.unlink(filePath, (err) => {
+          if (err) {
+            console.error(`Error deleting file: ${err}`);
+          } else {
+            console.log(
+              `File ${profilePicture} has been successfully deleted.`
+            );
+            updateProfilePicture();
+          }
+        });
+      }
     } else {
       console.log(`File ${profilePicture} does not exist.`);
       updateProfilePicture();
@@ -112,20 +116,37 @@ const editProfilePicture = async (req, res) => {
 };
 
 const editProfile = async (req, res) => {
-  const { display_name } = req.body;
+  const { display_name, username } = req.body;
 
-  if (!display_name) {
+  if (!display_name || !username) {
     return res.status(400).json({ message: 'All fields are required' });
   }
 
   try {
     const profile_data = {
       display_name: display_name,
+      username: username,
     };
 
     console.log(req.userId);
 
-    await db('users').update(profile_data).where('user_id', req.userId);
+    const checkUsername = await db('users')
+      .select('username')
+      .where('username', username)
+      .whereNot('user_id', req.userId);
+
+    if (checkUsername.length > 0) {
+      return res
+        .status(409)
+        .json({ status: 409, message: 'Username already taken.' });
+    } else {
+      await db('users').update(profile_data).where('user_id', req.userId);
+
+      return (
+        res.status(200),
+        res.json({ status: 200, message: 'Successfully updated profile.' })
+      );
+    }
   } catch (err) {
     res.status(500).json(err);
   }

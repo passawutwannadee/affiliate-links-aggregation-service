@@ -75,12 +75,29 @@ const getCollections = async (req, res) => {
     if (username) {
       query
         .where('users.username', username)
+        .leftJoin(
+          'product_collection',
+          'collections.collection_id',
+          'product_collection.collection_id'
+        )
+        .leftJoin(
+          'products',
+          'product_collection.product_id',
+          'products.product_id'
+        )
         .select(
           db.raw(
-            `collections.collection_id, collections.collection_name, collections.collection_description`
+            `collections.collection_id, collections.collection_name, collections.collection_description, GROUP_CONCAT("${process.env.PRODUCT_LINK_PATH}", products.product_image) as product_images`
           )
         );
+
       const collection = await query;
+
+      collection.forEach((row) => {
+        row.product_images =
+          row.product_images !== null ? row.product_images.split(',') : [];
+      });
+
       res.status(200).json(collection);
     }
   } catch (err) {
