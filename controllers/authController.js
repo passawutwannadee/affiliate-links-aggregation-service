@@ -187,7 +187,7 @@ const changePassword = async (req, res) => {
     );
 
     if (!passwordResult) {
-      res.status(400).send({ status: 400, message: 'Incorrect password' });
+      res.status(409).send({ status: 409, message: 'Incorrect password' });
     }
 
     if (passwordResult) {
@@ -314,7 +314,7 @@ const getAccount = async (req, res) => {
     query
       .select(
         db.raw(
-          `users.username, users.ban_status, email_verify, CONCAT("${process.env.USER_LINK_PATH}", users.profile_picture) as profile_picture`
+          `users.username, users.display_name, users.ban_status, email_verify, CONCAT("${process.env.USER_LINK_PATH}", users.profile_picture) as profile_picture`
         )
       )
       .where('user_id', req.userId);
