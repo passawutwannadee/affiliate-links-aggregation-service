@@ -35,14 +35,18 @@ const register = async (req, res) => {
     const existingEmail = await db('users').where('email', email).first();
 
     if (existingEmail) {
-      return res.status(409).json({ message: 'Email already exists' });
+      return res
+        .status(409)
+        .json({ status: 40911, message: 'Email already exists' });
     }
 
     // Check if the user already exists by searching for username
     const existingUser = await db('users').where('username', username).first();
 
     if (existingUser) {
-      return res.status(409).json({ message: 'Username already exists' });
+      return res
+        .status(409)
+        .json({ status: 40912, message: 'Username already exists' });
     }
 
     // salt password 10 rounds
@@ -146,7 +150,7 @@ const login = async (req, res) => {
             secure: true,
             sameSite: 'None',
           })
-          .json({ login: true, token: token, result: loginResult[0] });
+          .json({ login: true, result: loginResult[0] });
       }
     }
   } catch (err) {

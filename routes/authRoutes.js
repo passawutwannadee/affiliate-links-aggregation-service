@@ -18,7 +18,7 @@ router.patch(
 // Send Email
 router.post(
   '/verify-email',
-  authMiddleware.privateMiddleware,
+  authMiddleware.privateUnverifiedMiddleware,
   authController.sendVerifyEmail
 );
 // Verify Email

@@ -26,7 +26,7 @@ module.exports = multerConfig = {
         );
       },
     }),
-    // limits: { fileSize: 1024 * 1024 * 5 },
+    limits: { fileSize: 20 * 1024 * 1024 }, // 20MB
     fileFilter: (req, file, next) => {
       const image = file.mimetype.startsWith('image/');
       if (image) {

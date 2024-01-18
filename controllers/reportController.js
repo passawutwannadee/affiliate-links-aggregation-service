@@ -82,6 +82,15 @@ const createReports = async (req, res) => {
       .select('user_id')
       .where('username', username);
 
+    if (getUser.length === 0) {
+      console.log(getUser);
+      return res.status(404).json({ message: 'User does not exist.' });
+    }
+
+    if (getUser[0]['user_id'] === req.userId) {
+      return res.status(400).json({ message: 'You cannot report yourself.' });
+    }
+
     const reportData = {
       reporter_email: getReporter[0]['email'],
       report_category_id: report_category_id,
