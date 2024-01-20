@@ -6,8 +6,24 @@ const getUserReports = async (req, res) => {
   const report_id = req.query.report_id;
 
   try {
-    let getUserReports = db('user_reports').select('*');
-    //   .where('status_id', status);
+    let getUserReports = db('user_reports')
+      .select(
+        'report_id',
+        'reporter_email',
+        'report_information',
+        'report_link',
+        'report_status'
+      )
+      .select(
+        'username as reported_user',
+        'report_category_name as report_category'
+      )
+      .leftJoin('users', 'user_reports.user_id', 'users.user_id')
+      .leftJoin(
+        'report_categories',
+        'user_reports.report_category_id',
+        'report_categories.report_category_id'
+      );
 
     if (status) {
       getUserReports = getUserReports.where('report_status', status);
