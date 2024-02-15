@@ -157,8 +157,84 @@ const editProfile = async (req, res) => {
   });
 };
 
+const getBanReason = async (req, res) => {
+  try {
+    const query = await db('user_ban')
+      .leftJoin('bans', 'user_ban.ban_id', 'bans.ban_id')
+      .leftJoin(
+        'report_categories',
+        'bans.report_category_id',
+        'report_categories.report_category_id'
+      )
+      .leftJoin('ban_appeals', 'bans.ban_id', 'ban_appeals.ban_id')
+      .leftJoin(
+        'ticket_statuses',
+        'ban_appeals.ticket_status_id',
+        'ticket_statuses.ticket_status_id'
+      )
+      .select(
+        'user_ban.ban_id',
+        'report_category_name as ban_reason',
+        'ticket_status'
+      )
+      .where('user_id', req.userId);
+
+    return res.json(query[0]);
+  } catch (err) {
+    console.log(err);
+    return res.status(500).json(err);
+  }
+};
+
+const banAppeal = async (req, res) => {
+  const { ban_id, appeal_information } = req.body;
+
+  if (!ban_id || !appeal_information) {
+    return res.status(409).json({ message: 'All fields are required' });
+  }
+
+  try {
+    const checkBan = await db('user_ban')
+      .where('ban_id', ban_id)
+      .where('ban_active', 1)
+      .where('user_id', req.userId);
+
+    if (checkBan.length === 0) {
+      return res.status(400).json({ message: 'Bad request.' });
+    }
+
+    if (checkBan.length === 1) {
+      const checkAppeal = await db('ban_appeals').where(
+        'ban_appeals.ban_id',
+        ban_id
+      );
+
+      if (checkAppeal.length > 0) {
+        return res
+          .status(400)
+          .json({ message: 'Appeal can only be sent once.' });
+      }
+
+      if (checkAppeal.length === 0) {
+        const insertAppeal = await db('ban_appeals').insert({
+          ban_id: ban_id,
+          appeal_information: appeal_information,
+        });
+        return res
+          .status(201)
+          .json({ message: 'Successfully sent ban appeal.' });
+      }
+    }
+  } catch (err) {
+    console.log(err);
+    return res.status(500).json(err);
+  }
+};
+
 module.exports = {
   getUsers,
   editProfilePicture,
   editProfile,
+  getBanReason,
+  banAppeal,
 };

@@ -66,10 +66,21 @@ const getReports = async (req, res) => {
 };
 
 const createReports = async (req, res) => {
-  const { report_category_id, report_information, report_link, username } =
-    req.body;
+  const {
+    report_category_id,
+    report_information,
+    username,
+    product_id,
+    collection_id,
+  } = req.body;
 
-  if (!report_category_id || !report_information || !report_link || !username) {
+  if (product_id && collection_id) {
+    return res
+      .status(400)
+      .json({ message: 'Cannot report both product and collection.' });
+  }
+
+  if (!report_category_id || !report_information || !username) {
     return res.status(400).json({ message: 'All fields are required' });
   }
 
@@ -82,8 +93,29 @@ const createReports = async (req, res) => {
       .select('user_id')
       .where('username', username);
 
+    if (product_id) {
+      const getProduct = await db('products')
+        .select('product_id')
+        .where('product_id', product_id);
+
+      if (getProduct.length === 0) {
+        return res.status(404).json({ message: 'Product does not exist.' });
+      }
+    }
+
+    if (collection_id) {
+      const getCollection = await db('collections')
+        .select('collection_id')
+        .where('collection_id', collection_id);
+
+      if (getCollection.length === 0) {
+        return res.status(404).json({ message: 'Collection does not exist.' });
+      }
+    }
+
+    // const getUser = await getUserQuery;
+
     if (getUser.length === 0) {
-      console.log(getUser);
       return res.status(404).json({ message: 'User does not exist.' });
     }
 
@@ -95,7 +127,8 @@ const createReports = async (req, res) => {
       reporter_email: getReporter[0]['email'],
       report_category_id: report_category_id,
       report_information: report_information,
-      report_link: report_link,
+      product_id: product_id,
+      collection_id: collection_id,
       user_id: getUser[0]['user_id'],
     };
 
@@ -111,14 +144,20 @@ const createReports = async (req, res) => {
 };
 
 const getReportCategories = async (req, res) => {
+  const report_category_parent_id = req.query.parentId;
+
+  if (!report_category_parent_id) {
+    return res.status(400).json({ message: 'All fields are required' });
+  }
+
   try {
-    const getCategories = await db('report_categories').select(
-      'report_category_id',
-      'report_catogory_name'
-    );
+    const getCategories = await db('report_categories')
+      .select('report_category_id', 'report_category_name')
+      .where('report_category_parent_id', report_category_parent_id);
 
     return res.status(200).json(getCategories);
   } catch (err) {
+    console.log(err);
     return res.status(500).json({ message: 'Internal Server Error.' });
   }
 };

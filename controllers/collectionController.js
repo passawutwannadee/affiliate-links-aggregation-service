@@ -201,6 +201,11 @@ const manageCollection = async (req, res) => {
       }
     }
 
+    const removeFromCollection = await db('product_collection')
+      .where('collection_id', collection_id)
+      .whereNotIn('product_id', products)
+      .del();
+
     for (let i = 0; i < products.length; i++) {
       const product_data = {
         collection_id: collection_id,
@@ -242,14 +247,14 @@ const removeCollections = async (req, res) => {
       .where('collections.user_id', req.userId);
 
     if (deleteCollection === 0) {
-      return res.status(204).json({ message: 'Product not found' });
+      return res.status(204).json({ message: 'Collection not found' });
     }
 
     if (deleteCollection === 1) {
       return res.status(200).json({ message: 'Successfully deleted product.' });
     }
   } catch (err) {
-    console.error('Error deleting product from the database: ', err);
+    console.error('Error deleting collection from the database: ', err);
     return res.status(500).json({ message: err });
   }
 };

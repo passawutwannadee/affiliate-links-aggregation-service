@@ -339,10 +339,8 @@ const removeProducts = async (req, res) => {
       .select('product_image')
       .where('product_id', productId);
 
-    console.log(getProductPicture);
-
     if (!getProductPicture[0]) {
-      return res.status(204).json({ message: 'Product not found' });
+      return res.status(404).json({ message: 'Product not found' });
     }
 
     if (getProductPicture[0]) {

@@ -318,13 +318,29 @@ const getAccount = async (req, res) => {
     query
       .select(
         db.raw(
-          `users.username, users.display_name, users.ban_status, email_verify, CONCAT("${process.env.USER_LINK_PATH}", users.profile_picture) as profile_picture`
+          `users.username, users.display_name, users.role_id, email_verify, CONCAT("${process.env.USER_LINK_PATH}", users.profile_picture) as profile_picture`
         )
       )
       .where('user_id', req.userId);
 
+    const getIsBanned = await db('user_ban')
+      .select('*')
+      .where('user_id', req.userId)
+      .where('ban_active', 1);
+
     const account = await query;
-    return res.status(200).json(account[0]);
+
+    console.log(getIsBanned);
+
+    if (getIsBanned.length > 0) {
+      account[0]['ban_status'] = 1;
+      return res.status(200).json(account[0]);
+    }
+
+    if (getIsBanned.length === 0) {
+      account[0]['ban_status'] = 0;
+      return res.status(200).json(account[0]);
+    }
   } catch (err) {
     console.log(err);
     return res.status(500).json({ message: err });

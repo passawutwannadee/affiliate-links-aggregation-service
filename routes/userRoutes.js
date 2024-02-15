@@ -18,4 +18,16 @@ router.patch(
   userController.editProfile
 );
 
+router.get(
+  '/ban',
+  authMiddleware.privateMiddleware,
+  userController.getBanReason
+);
+
+router.post(
+  '/ban/appeal',
+  authMiddleware.privateMiddleware,
+  userController.banAppeal
+);
+
 module.exports = router;
