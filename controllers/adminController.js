@@ -376,7 +376,7 @@ const getBanAppeals = async (req, res) => {
 };
 
 const unbanUser = async (req, res) => {
-  const { ban_id, user_id } = req.body;
+  const { appeal_id, ban_id, user_id } = req.body;
 
   if (!user_id || !ban_id) {
     return res.status(400).json({ message: 'All fields are required' });
@@ -393,9 +393,15 @@ const unbanUser = async (req, res) => {
     }
 
     if (unbanQuery === 1) {
+      const resolved = await db('ban_appeals')
+        .update({ ticket_status_id: 2 })
+        .where('appeal_id', appeal_id);
+
       return res.status(200).send({ message: 'Successfully unban user' });
     }
-  } catch (err) {}
+  } catch (err) {
+    return res.status(500).send({ message: 'Internal server error.' });
+  }
 };
 
 const updateTicket = async (req, res) => {

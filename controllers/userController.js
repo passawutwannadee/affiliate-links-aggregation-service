@@ -31,9 +31,18 @@ const getUsers = async (req, res) => {
         )
       )
       .from('users')
-      .where('username', username);
-
+      .where('username', username)
+      .leftJoin('user_ban', 'users.user_id', 'user_ban.user_id')
+      .whereNotExists(function () {
+        this.select(db.raw(1))
+          .from('user_ban')
+          .leftJoin('users', 'user_ban.user_id', 'users.user_id')
+          .where('username', username)
+          .where('user_ban.ban_active', 1);
+      });
     const users = await query;
+
+    console.log(users.length);
 
     if (users.length === 0) {
       return res.status(404).json({ status: 404, message: 'User not found.' });
@@ -177,7 +186,8 @@ const getBanReason = async (req, res) => {
         'report_category_name as ban_reason',
         'ticket_status'
       )
-      .where('user_id', req.userId);
+      .where('user_id', req.userId)
+      .where('ban_active', 1);
 
     return res.json(query[0]);
   } catch (err) {

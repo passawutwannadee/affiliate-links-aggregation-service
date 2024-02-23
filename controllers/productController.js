@@ -10,6 +10,9 @@ const getProducts = async (req, res) => {
   try {
     const product_id = req.query.product_id;
     const username = req.query.username;
+    const limit = parseInt(req.query._limit) || null;
+    const page = parseInt(req.query._page) || 1;
+    const offset = (page - 1) * limit;
 
     if (!username && !product_id) {
       return res
@@ -20,11 +23,32 @@ const getProducts = async (req, res) => {
     let query = db('products');
 
     if (product_id) {
-      query = query.where('products.product_id', product_id);
+      query = query
+        .where('products.product_id', product_id)
+        .whereNotExists(function () {
+          this.select(db.raw(1))
+            .from('user_ban')
+            .leftJoin('users', 'user_ban.user_id', 'users.user_id')
+            .leftJoin('products', 'users.user_id', 'products.user_id')
+            .where('products.product_id', product_id)
+            .where('user_ban.ban_active', 1);
+        });
     }
 
     if (username) {
-      query = query.where('users.username', username);
+      query = query
+        .where('users.username', username)
+        .whereNotExists(function () {
+          this.select(db.raw(1))
+            .from('user_ban')
+            .leftJoin('users', 'user_ban.user_id', 'users.user_id')
+            .where('users.username', username)
+            .where('user_ban.ban_active', 1);
+        });
+    }
+
+    if (limit && page) {
+      query = query.limit(limit).offset(offset);
     }
 
     query
@@ -43,13 +67,45 @@ const getProducts = async (req, res) => {
         )
       );
 
-    const products = await query;
+    let products = await query;
 
+    if (products.length === 0 && product_id) {
+      return res
+        .status(404)
+        .json({ status: 404, message: 'Product not found.' });
+    }
     products.forEach((row) => {
       row.links = row.links !== null ? row.links.split(',') : [];
     });
 
-    return res.json(products);
+    if (limit && page) {
+      const totalCount = await db('products')
+        .count('product_id as totalCount') // Assuming 'id' is the primary key of your table
+        .first()
+        .leftJoin('users', 'products.user_id', 'users.user_id')
+        .where('users.username', username)
+        .whereNotExists(function () {
+          this.select(db.raw(1))
+            .from('user_ban')
+            .leftJoin('users', 'user_ban.user_id', 'users.user_id')
+            .where('users.username', username)
+            .where('user_ban.ban_active', 1);
+        });
+
+      console.log(totalCount.totalCount);
+      const hasNextPage = totalCount.totalCount > offset + limit;
+      const nextPage = hasNextPage ? page + 1 : null;
+      const hasPreviousPage = totalCount.totalCount <= offset + limit;
+      const previousPage = hasPreviousPage ? page - 1 : null;
+
+      return res.json({
+        data: products,
+        next_page: nextPage,
+        previous_page: previousPage,
+      });
+    } else {
+      return res.json(products);
+    }
   } catch (err) {
     console.error('Error getting product from the database: ', err);
     return res.sendStatus(500);
