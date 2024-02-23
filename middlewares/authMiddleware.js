@@ -33,24 +33,24 @@ function privateMiddleware(req, res, next) {
           console.error('JWT verification error:', err.message);
         }
       } else {
-        const isAdmin = await db('users')
+        const isVerified = await db('users')
           .select('email_verify')
           .where('user_id', decoded.userId);
 
-        if (isAdmin.length === 0) {
+        if (isVerified.length === 0) {
           return res.status(403).json({
             message: 'Forbidden',
             status: 403,
           });
         }
-        if (isAdmin.length === 1) {
-          if (isAdmin[0]['email_verify'] === 0) {
+        if (isVerified.length === 1) {
+          if (isVerified[0]['email_verify'] === 0) {
             return res.status(403).json({
               status: 4031,
               message: 'Forbidden. Unverified email.',
             });
           }
-          if (isAdmin[0]['email_verify'] === 1) {
+          if (isVerified[0]['email_verify'] === 1) {
             req.userId = decoded.userId;
             next();
           }
@@ -104,6 +104,7 @@ function adminMiddleware(req, res, next) {
           });
         }
         if (isAdmin.length === 1) {
+          req.userId = decoded.userId;
           next();
         }
       }

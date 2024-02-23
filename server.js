@@ -31,6 +31,7 @@ const productRoutes = require('./routes/productRoutes');
 const userRoutes = require('./routes/userRoutes');
 const collectionRoutes = require('./routes/collectionRoutes');
 const reportRoutes = require('./routes/reportRoutes');
+const adminRoutes = require('./routes/adminRoutes');
 
 // Use Routes
 app.use('/auth', authRoutes);
@@ -38,6 +39,7 @@ app.use('/products', productRoutes);
 app.use('/users', userRoutes);
 app.use('/collections', collectionRoutes);
 app.use('/reports', reportRoutes);
+app.use('/admin', adminRoutes);
 
 // Listen Port
 const port = process.env.PORT;
