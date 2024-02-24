@@ -13,6 +13,14 @@ const getProducts = async (req, res) => {
     const limit = parseInt(req.query._limit) || null;
     const page = parseInt(req.query._page) || 1;
     const offset = (page - 1) * limit;
+    let category_id = parseInt(req.query.category_id);
+    const product_name = req.query['product-name'];
+
+    if (category_id === 0) {
+      category_id = null;
+    }
+
+    console.log(category_id);
 
     if (!username && !product_id) {
       return res
@@ -51,6 +59,14 @@ const getProducts = async (req, res) => {
       query = query.limit(limit).offset(offset);
     }
 
+    if (category_id) {
+      query = query.where('products.category_id', category_id);
+    }
+
+    if (product_name) {
+      query = query.where('product_name', 'like', `%${product_name}%`);
+    }
+
     query
       .leftJoin('users', 'products.user_id', 'users.user_id')
       .groupBy('products.product_id')
@@ -79,7 +95,7 @@ const getProducts = async (req, res) => {
     });
 
     if (limit && page) {
-      const totalCount = await db('products')
+      let query = db('products')
         .count('product_id as totalCount') // Assuming 'id' is the primary key of your table
         .first()
         .leftJoin('users', 'products.user_id', 'users.user_id')
@@ -91,6 +107,16 @@ const getProducts = async (req, res) => {
             .where('users.username', username)
             .where('user_ban.ban_active', 1);
         });
+
+      if (category_id) {
+        query = query.where('products.category_id', category_id);
+      }
+
+      if (product_name) {
+        query = query.where('product_name', 'like', `%${product_name}%`);
+      }
+
+      let totalCount = await query;
 
       console.log(totalCount.totalCount);
       const hasNextPage = totalCount.totalCount > offset + limit;

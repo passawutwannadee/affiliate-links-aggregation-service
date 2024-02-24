@@ -11,6 +11,7 @@ const getCollections = async (req, res) => {
     const limit = parseInt(req.query._limit) || null;
     const page = parseInt(req.query._page) || 1;
     const offset = (page - 1) * limit;
+    const collectionName = req.query['collection-name'];
 
     if (!username && !collectionId) {
       return res
@@ -115,6 +116,10 @@ const getCollections = async (req, res) => {
         query = query.limit(limit).offset(offset);
       }
 
+      if (collectionName) {
+        query = query.where('collection_name', 'like', `%${collectionName}%`);
+      }
+
       const collection = await query;
 
       collection.forEach((row) => {
@@ -123,7 +128,7 @@ const getCollections = async (req, res) => {
       });
 
       if (limit && page) {
-        const totalCount = await db('collections')
+        let query = db('collections')
           .count('collection_id as totalCount') // Assuming 'id' is the primary key of your table
           .first()
           .leftJoin('users', 'collections.user_id', 'collections.user_id')
@@ -135,6 +140,12 @@ const getCollections = async (req, res) => {
               .where('users.username', username)
               .where('user_ban.ban_active', 1);
           });
+
+        if (collectionName) {
+          query = query.where('collection_name', 'like', `%${collectionName}%`);
+        }
+
+        const totalCount = await query;
 
         const hasNextPage = totalCount.totalCount > offset + limit;
         const nextPage = hasNextPage ? page + 1 : null;
