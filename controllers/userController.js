@@ -32,7 +32,6 @@ const getUsers = async (req, res) => {
       )
       .from('users')
       .where('username', username)
-      .leftJoin('user_ban', 'users.user_id', 'user_ban.user_id')
       .whereNotExists(function () {
         this.select(db.raw(1))
           .from('user_ban')

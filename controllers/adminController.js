@@ -194,8 +194,6 @@ const warnUser = async (req, res) => {
     collection_id,
   } = req.body;
 
-  console.log(req.body);
-
   if (!product_id && !collection_id) {
     return res.status(400).json({ message: 'All fields are required' });
   }
