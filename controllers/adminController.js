@@ -8,6 +8,9 @@ const getUserReports = async (req, res) => {
   const report_id = req.query.report_id;
   const products = req.query.products;
   const collections = req.query.collections;
+  const username = req.query.username;
+  const cateogry_id = req.query['category-id'];
+  const status_id = req.query['status-id'];
 
   try {
     let getUserReports = db('user_reports')
@@ -20,11 +23,7 @@ const getUserReports = async (req, res) => {
         'product_id',
         'collection_id'
       )
-      .select(
-        'user_reports.  user_id',
-        'username as reported_user',
-        'report_category_name as report_category'
-      )
+      .select('user_reports.  user_id', 'username')
       .leftJoin('users', 'user_reports.user_id', 'users.user_id')
       .leftJoin(
         'report_categories',
@@ -58,11 +57,21 @@ const getUserReports = async (req, res) => {
     }
 
     if (products === 'true') {
-      getUserReports = getUserReports.whereNotNull('product_id');
+      getUserReports = getUserReports
+        .whereNotNull('product_id')
+        .select('report_category_name as product_report_category');
     }
 
     if (collections === 'true') {
-      getUserReports = getUserReports.whereNotNull('collection_id');
+      getUserReports = getUserReports
+        .whereNotNull('collection_id')
+        .select('report_category_name as collection_report_category');
+    }
+
+    if (collections !== 'true' && products !== 'true') {
+      getUserReports = getUserReports.select(
+        'report_category_name as user_report_category'
+      );
     }
 
     const result = await getUserReports;
@@ -404,6 +413,19 @@ const unbanUser = async (req, res) => {
   }
 };
 
+const getTicketStatuses = async (req, res) => {
+  try {
+    const get = await db('ticket_statuses').select(
+      'ticket_status as value',
+      'ticket_status as label'
+    );
+
+    return res.status(200).json(get);
+  } catch (err) {
+    return res.status(500).json({ message: 'Internal Server Error.' });
+  }
+};
+
 const updateTicket = async (req, res) => {
   const { report_id, appeal_id, ticket_status_id } = req.body;
 
@@ -465,5 +487,6 @@ module.exports = {
   banUser,
   unbanUser,
   warnUser,
+  getTicketStatuses,
   updateTicket,
 };

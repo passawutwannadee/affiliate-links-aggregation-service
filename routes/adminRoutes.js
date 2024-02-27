@@ -20,6 +20,11 @@ router.get(
   authMiddleware.adminMiddleware,
   adminController.getBanAppeals
 );
+router.get(
+  '/ticket',
+  authMiddleware.adminMiddleware,
+  adminController.getTicketStatuses
+);
 router.put(
   '/user/unban',
   authMiddleware.adminMiddleware,
