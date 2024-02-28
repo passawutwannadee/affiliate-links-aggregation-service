@@ -30,5 +30,6 @@ router.put(
   authMiddleware.adminMiddleware,
   adminController.unbanUser
 );
+router.get('/test', authMiddleware.adminMiddleware, adminController.test);
 
 module.exports = router;

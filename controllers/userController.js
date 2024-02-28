@@ -182,6 +182,7 @@ const getBanReason = async (req, res) => {
       )
       .select(
         'user_ban.ban_id',
+        'bans.report_category_id as ban_reason_id',
         'report_category_name as ban_reason',
         'ticket_status'
       )
@@ -206,10 +207,11 @@ const banAppeal = async (req, res) => {
     const checkBan = await db('user_ban')
       .where('ban_id', ban_id)
       .where('ban_active', 1)
-      .where('user_id', req.userId);
+      .where('user_id', req.userId)
+      .whereNot('report_category_id', 14);
 
     if (checkBan.length === 0) {
-      return res.status(400).json({ message: 'Bad request.' });
+      return res.status(400).json({ message: 'Ban does not exist.' });
     }
 
     if (checkBan.length === 1) {

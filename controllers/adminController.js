@@ -1,6 +1,8 @@
 const db = require('../database/db');
 const fs = require('fs');
 const path = require('path');
+const warnEmail = require('../utils/templates/warnEmail');
+const suspendedEmail = require('../utils/templates/suspendedEmail');
 
 const getUserReports = async (req, res) => {
   const status = req.query.status;
@@ -139,18 +141,18 @@ const banUser = async (req, res) => {
 const warnUser = async (req, res) => {
   const removeProducts = async (productId) => {
     try {
-      const getProductPicture = await db('products')
+      const getProduct = await db('products')
         .select('product_image')
         .where('product_id', productId);
 
-      console.log(getProductPicture);
+      console.log(getProduct);
 
-      if (!getProductPicture[0]) {
+      if (!getProduct[0]) {
         return res.status(404).json({ message: 'Product not found' });
       }
 
-      if (getProductPicture[0]) {
-        const productImage = getProductPicture[0].product_image;
+      if (getProduct[0]) {
+        const productImage = getProduct[0].product_image;
 
         const filePath = path.join('./uploads/images/products', productImage);
 
@@ -216,18 +218,16 @@ const warnUser = async (req, res) => {
       .where('role_id', 2);
 
     if (checkBan.length === 0 && checkAdmin.length === 0 && product_id) {
-      const getProductPicture = await db('products')
-        .select('product_image')
+      const getProduct = await db('products')
+        .select('product_image', 'product_name')
         .where('product_id', product_id);
 
-      if (!getProductPicture[0]) {
+      if (!getProduct[0]) {
         return res.status(404).json({ message: 'Product not found' });
       }
 
-      console.log(getProductPicture);
-
-      if (getProductPicture[0]) {
-        const productImage = getProductPicture[0].product_image;
+      if (getProduct[0]) {
+        const productImage = getProduct[0].product_image;
 
         const filePath = path.join('./uploads/images/products', productImage);
 
@@ -238,8 +238,6 @@ const warnUser = async (req, res) => {
         if (deleteProduct === 0) {
           return res.status(204).json({ message: 'Product not found' });
         }
-
-        console.log('-----------------------------------2');
 
         if (deleteProduct === 1) {
           if (fs.existsSync(filePath)) {
@@ -256,11 +254,23 @@ const warnUser = async (req, res) => {
           } else {
             console.log(`File ${productImage} does not exist.`);
           }
-          const warnReason = await db('warns').insert({
-            report_category_id: report_category_id,
-            warn_reason_detail: warn_reason_detail,
-            user_id: user_id,
-          });
+          const warnReason = await db('warns')
+            .insert({
+              report_category_id: report_category_id,
+              warn_reason_detail: warn_reason_detail,
+              user_id: user_id,
+            })
+            .returning('warn_id');
+
+          const getWarn = await db('warns')
+            .select('username', 'email', 'report_category_name as ban_reason')
+            .leftJoin('users', 'warns.user_id', 'users.user_id')
+            .leftJoin(
+              'report_categories',
+              'warns.report_category_id',
+              'report_categories.report_category_id'
+            )
+            .where('warns.warn_id', warnReason[0]);
 
           const resolved = await db('user_reports')
             .update({ ticket_status_id: 2 })
@@ -269,18 +279,37 @@ const warnUser = async (req, res) => {
 
           const checkWarn = await db('warns').where('user_id', user_id);
 
+          await warnEmail(
+            'product',
+            checkWarn.length,
+            getWarn[0].ban_reason,
+            getProduct[0].product_name,
+            getWarn[0].username,
+            getWarn[0].email
+          );
+
           if (checkWarn.length > 2) {
             const banReason = await db('bans')
               .insert({
-                report_category_id: report_category_id,
+                report_category_id: 14,
                 ban_reason_detail: 'This user recieved 3 or more warnings.',
               })
               .returning('ban_id');
+
+            const getCategory = await db('report_categories')
+              .select('report_category_name')
+              .where('report_category_id', 14);
 
             const banUser = await db('user_ban').insert({
               user_id: user_id,
               ban_id: banReason[0],
             });
+
+            await suspendedEmail(
+              getWarn[0].username,
+              getCategory[0].report_category_name,
+              getWarn[0].email
+            );
           }
 
           return res
@@ -291,6 +320,10 @@ const warnUser = async (req, res) => {
     }
 
     if (checkBan.length === 0 && checkAdmin.length === 0 && collection_id) {
+      const getProduct = await db('collections')
+        .select('collection_name')
+        .where('collection_id', collection_id);
+
       const deleteCollection = await db('collections')
         .del()
         .where('collection_id', collection_id);
@@ -300,31 +333,62 @@ const warnUser = async (req, res) => {
       }
 
       if (deleteCollection === 1) {
-        const warnReason = await db('warns').insert({
-          report_category_id: report_category_id,
-          warn_reason_detail: warn_reason_detail,
-          user_id: user_id,
-        });
+        const warnReason = await db('warns')
+          .insert({
+            report_category_id: report_category_id,
+            warn_reason_detail: warn_reason_detail,
+            user_id: user_id,
+          })
+          .returning('warn_id');
 
         const resolved = await db('user_reports')
           .update({ ticket_status_id: 2 })
           .where('user_id', user_id)
           .where('collection_id', collection_id);
 
+        const getWarn = await db('warns')
+          .select('username', 'email', 'report_category_name as ban_reason')
+          .leftJoin('users', 'warns.user_id', 'users.user_id')
+          .leftJoin(
+            'report_categories',
+            'warns.report_category_id',
+            'report_categories.report_category_id'
+          )
+          .where('warns.warn_id', warnReason[0]);
+
         const checkWarn = await db('warns').where('user_id', user_id);
+
+        await warnEmail(
+          'collection',
+          checkWarn.length,
+          getWarn[0].ban_reason,
+          getProduct[0].collection_name,
+          getWarn[0].username,
+          getWarn[0].email
+        );
 
         if (checkWarn.length > 2) {
           const banReason = await db('bans')
             .insert({
-              report_category_id: report_category_id,
+              report_category_id: 14,
               ban_reason_detail: 'This user recieved 3 or more warnings.',
             })
             .returning('ban_id');
+
+          const getCategory = await db('report_categories')
+            .select('report_category_name')
+            .where('report_category_id', 14);
 
           const banUser = await db('user_ban').insert({
             user_id: user_id,
             ban_id: banReason[0],
           });
+
+          await suspendedEmail(
+            getWarn[0].username,
+            getCategory[0].report_category_name,
+            getWarn[0].email
+          );
         }
 
         return res
@@ -383,9 +447,9 @@ const getBanAppeals = async (req, res) => {
 };
 
 const unbanUser = async (req, res) => {
-  const { appeal_id, ban_id, user_id } = req.body;
+  const { appeal_id, ban_id, user_id, unban_reason_detail } = req.body;
 
-  if (!user_id || !ban_id) {
+  if (!user_id || !ban_id || !appeal_id || !unban_reason_detail) {
     return res.status(400).json({ message: 'All fields are required' });
   }
 
@@ -401,12 +465,16 @@ const unbanUser = async (req, res) => {
 
     if (unbanQuery === 1) {
       const resolved = await db('ban_appeals')
-        .update({ ticket_status_id: 2 })
+        .update({
+          ticket_status_id: 2,
+          unban_reason_detail: unban_reason_detail,
+        })
         .where('appeal_id', appeal_id);
 
       return res.status(200).send({ message: 'Successfully unban user' });
     }
   } catch (err) {
+    console.log(err);
     return res.status(500).send({ message: 'Internal server error.' });
   }
 };
@@ -479,7 +547,13 @@ const updateTicket = async (req, res) => {
   }
 };
 
+const test = async (req, res) => {
+  await warnEmail({ email: 'passawut@tuta.io' });
+  res.status(200).json({ message: 'Email sent' });
+};
+
 module.exports = {
+  test,
   getUserReports,
   getBanAppeals,
   banUser,
