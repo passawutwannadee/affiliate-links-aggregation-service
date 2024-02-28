@@ -205,10 +205,11 @@ const banAppeal = async (req, res) => {
 
   try {
     const checkBan = await db('user_ban')
-      .where('ban_id', ban_id)
-      .where('ban_active', 1)
-      .where('user_id', req.userId)
-      .whereNot('report_category_id', 14);
+      .where('user_ban.ban_id', ban_id)
+      .where('user_ban.ban_active', 1)
+      .where('user_ban.user_id', req.userId)
+      .leftJoin('bans', 'user_ban.ban_id', 'bans.ban_id')
+      .whereNot('bans.report_category_id', 14);
 
     if (checkBan.length === 0) {
       return res.status(400).json({ message: 'Ban does not exist.' });
