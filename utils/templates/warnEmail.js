@@ -74,7 +74,7 @@ const warnEmail = async (
     const mailOptions = {
       from: process.env.EMAIL_USER,
       to: userEmail,
-      subject: `Your product has been removed`,
+      subject: `Your ${type} has been removed`,
       html: html,
     };
 

@@ -318,8 +318,6 @@ const editProducts = async (req, res) => {
             .where('product_id', product_id)
             .where('user_id', req.userId);
 
-          console.log('test1');
-
           if (getOldImage.length === 1) {
             const oldFilePath = path.join(
               './uploads/images/products',
