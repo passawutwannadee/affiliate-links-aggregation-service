@@ -7,7 +7,8 @@ const warnEmail = async (
   warnReason,
   title,
   username,
-  userEmail
+  userEmail,
+  expiredDate
 ) => {
   const mjmlContent = `
     <mjml>
@@ -49,12 +50,13 @@ const warnEmail = async (
                 Hi ${username},
               </mj-text>
               <mj-text color="#637381" font-size="16px">
-                We're notifying you that you have been issued a warning and your ${type} has been removed due to violation of Terms of Service. If you have been issued a warning for 3 times or more, your account will be suspended without the posibility of appeal.
+                We're notifying you that you have been issued a warning and your ${type} has been removed due to violation of Terms of Service. If you have been issued a warning for 3 times or more of total of current warns, your account will be suspended without the posibility of appeal.
               </mj-text>
               <mj-text color="#637381" font-size="16px">
                   <p style="padding-bottom: 20px"><strong>Total warns:</strong><span> ${totalWarn}</span></p>
                   <p style="padding-bottom: 20px"><strong>Reason:</strong> ${warnReason}</p>
                   <p style="padding-bottom: 20px"><strong>Item:</strong> ${title}</p>
+                  <p style="padding-bottom: 20px"><strong>Expired on:</strong> ${expiredDate}</p>
               </mj-text>
             </mj-column>
           </mj-section>

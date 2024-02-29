@@ -264,6 +264,11 @@ const warnUser = async (req, res) => {
 
           const getWarn = await db('warns')
             .select('username', 'email', 'report_category_name as ban_reason')
+            .select(
+              db.raw(
+                'DATE(DATE_SUB(warns.created_date, INTERVAL -1 year)) AS expired_date'
+              )
+            )
             .leftJoin('users', 'warns.user_id', 'users.user_id')
             .leftJoin(
               'report_categories',
@@ -285,7 +290,8 @@ const warnUser = async (req, res) => {
             getWarn[0].ban_reason,
             getProduct[0].product_name,
             getWarn[0].username,
-            getWarn[0].email
+            getWarn[0].email,
+            getWarn[0].expired_date
           );
 
           if (checkWarn.length > 2) {
@@ -348,6 +354,11 @@ const warnUser = async (req, res) => {
 
         const getWarn = await db('warns')
           .select('username', 'email', 'report_category_name as ban_reason')
+          .select(
+            db.raw(
+              'DATE(DATE_SUB(warns.created_date, INTERVAL -1 year)) AS expired_date'
+            )
+          )
           .leftJoin('users', 'warns.user_id', 'users.user_id')
           .leftJoin(
             'report_categories',
@@ -364,7 +375,8 @@ const warnUser = async (req, res) => {
           getWarn[0].ban_reason,
           getProduct[0].collection_name,
           getWarn[0].username,
-          getWarn[0].email
+          getWarn[0].email,
+          getWarn[0].expired_date
         );
 
         if (checkWarn.length > 2) {

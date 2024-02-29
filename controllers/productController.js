@@ -87,8 +87,8 @@ const getProducts = async (req, res) => {
 
     if (products.length === 0 && product_id) {
       return res
-        .status(404)
-        .json({ status: 404, message: 'Product not found.' });
+        .status(204)
+        .json({ status: 204, message: 'Product not found.' });
     }
     products.forEach((row) => {
       row.links = row.links !== null ? row.links.split(',') : [];
@@ -219,6 +219,7 @@ const createProduct = async (req, res) => {
       });
     }
   } catch (error) {
+    console.log(error);
     const product_image = req.file ? req.file.filename : null;
 
     if (product_image) {
@@ -230,11 +231,11 @@ const createProduct = async (req, res) => {
           if (err) {
             console.error(`Error deleting file: ${err}`);
             console.error('Error storing product in the database: ', error);
-            res.sendStatus(500);
+            return res.sendStatus(500);
           } else {
             console.log(`File ${product_image} has been successfully deleted.`);
             console.error('Error storing product in the database: ', err);
-            res.sendStatus(500);
+            return res.sendStatus(500);
           }
         });
       }
@@ -294,10 +295,10 @@ const editProducts = async (req, res) => {
         fs.unlink(filePath, (err) => {
           if (err) {
             console.error(`Error deleting file: ${err}`);
-            return res.status(404).json({ message: 'Product does not exist.' });
+            return res.status(204).json({ message: 'Product does not exist.' });
           } else {
             console.log(`File ${product_image} has been successfully deleted.`);
-            return res.status(404).json({ message: 'Product does not exist.' });
+            return res.status(204).json({ message: 'Product does not exist.' });
           }
         });
       } else {
@@ -418,11 +419,13 @@ const removeProducts = async (req, res) => {
 
   try {
     const getProductPicture = await db('products')
-      .select('product_image')
+      .select('product_image', 'product_name')
       .where('product_id', productId);
 
+    console.log('get product', getProductPicture[0]);
+
     if (!getProductPicture[0]) {
-      return res.status(404).json({ message: 'Product not found' });
+      return res.status(204).json({ message: 'Product not found' });
     }
 
     if (getProductPicture[0]) {
@@ -434,10 +437,6 @@ const removeProducts = async (req, res) => {
         .del()
         .where('product_id', productId)
         .where('products.user_id', req.userId);
-
-      if (deleteProduct === 0) {
-        return res.status(204).json({ message: 'Product not found' });
-      }
 
       if (deleteProduct === 1) {
         if (fs.existsSync(filePath)) {
@@ -454,6 +453,11 @@ const removeProducts = async (req, res) => {
         } else {
           console.log(`File ${productImage} does not exist.`);
         }
+
+        const deleteReports = await db('user_reports')
+          .where('product_id', productId)
+          .del();
+
         return res
           .status(200)
           .json({ message: 'Successfully deleted product.' });
