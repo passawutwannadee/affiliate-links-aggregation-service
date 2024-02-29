@@ -86,9 +86,10 @@ const getUserReports = async (req, res) => {
 };
 
 const banUser = async (req, res) => {
-  const { user_id, report_category_id, ban_reason_detail } = req.body;
+  const { user_id, report_category_id, ban_reason_detail, report_id } =
+    req.body;
 
-  if (!user_id || !report_category_id || !ban_reason_detail) {
+  if (!user_id || !report_category_id || !ban_reason_detail || !report_id) {
     return res.status(400).json({ message: 'All fields are required' });
   }
 
@@ -120,7 +121,27 @@ const banUser = async (req, res) => {
 
       const resolved = await db('user_reports')
         .update({ ticket_status_id: 2 })
+        .where('report_id', report_id);
+
+      const removeDuplicate = await db('user_reports')
+        .whereNot('report_id', report_id)
+        .where('user_id', user_id)
+        .where('ticket_status_id', 1)
+        .del();
+
+      const getCategory = await db('report_categories')
+        .select('report_category_name')
+        .where('report_category_id', report_category_id);
+
+      const getUser = await db('users')
+        .select('username', 'email')
         .where('user_id', user_id);
+
+      await suspendedEmail(
+        getUser[0].username,
+        getCategory[0].report_category_name,
+        getUser[0].email
+      );
 
       return res.status(201).json({ message: 'Succesfully banned user.' });
     }
@@ -190,6 +211,7 @@ const warnUser = async (req, res) => {
 
   const {
     user_id,
+    report_id,
     report_category_id,
     warn_reason_detail,
     product_id,
@@ -200,7 +222,7 @@ const warnUser = async (req, res) => {
     return res.status(400).json({ message: 'All fields are required' });
   }
 
-  if (!user_id || !report_category_id || !warn_reason_detail) {
+  if (!user_id || !report_category_id || !warn_reason_detail || !report_id) {
     return res.status(400).json({ message: 'All fields are required' });
   }
 
@@ -279,8 +301,14 @@ const warnUser = async (req, res) => {
 
           const resolved = await db('user_reports')
             .update({ ticket_status_id: 2 })
+            .where('report_id', report_id);
+
+          const removeDuplicate = await db('user_reports')
+            .whereNot('report_id', report_id)
             .where('user_id', user_id)
-            .where('product_id', product_id);
+            .where('product_id', product_id)
+            .where('ticket_status_id', 1)
+            .del();
 
           const checkWarn = await db('warns').where('user_id', user_id);
 
@@ -349,8 +377,14 @@ const warnUser = async (req, res) => {
 
         const resolved = await db('user_reports')
           .update({ ticket_status_id: 2 })
+          .where('report_id', report_id);
+
+        const removeDuplicate = await db('user_reports')
+          .whereNot('report_id', report_id)
           .where('user_id', user_id)
-          .where('collection_id', collection_id);
+          .where('collection_id', collection_id)
+          .where('ticket_status_id', 1)
+          .del();
 
         const getWarn = await db('warns')
           .select('username', 'email', 'report_category_name as ban_reason')
