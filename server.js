@@ -32,6 +32,7 @@ const userRoutes = require('./routes/userRoutes');
 const collectionRoutes = require('./routes/collectionRoutes');
 const reportRoutes = require('./routes/reportRoutes');
 const adminRoutes = require('./routes/adminRoutes');
+const cleanWarns = require('./script/cleanWarns');
 
 // Use Routes
 app.use('/auth', authRoutes);
@@ -40,6 +41,8 @@ app.use('/users', userRoutes);
 app.use('/collections', collectionRoutes);
 app.use('/reports', reportRoutes);
 app.use('/admin', adminRoutes);
+
+cleanWarns.cleanWarns();
 
 // Listen Port
 const port = process.env.PORT;

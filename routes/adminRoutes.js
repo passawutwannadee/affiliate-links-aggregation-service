@@ -20,10 +20,16 @@ router.get(
   authMiddleware.adminMiddleware,
   adminController.getBanAppeals
 );
+router.get(
+  '/ticket',
+  authMiddleware.adminMiddleware,
+  adminController.getTicketStatuses
+);
 router.put(
   '/user/unban',
   authMiddleware.adminMiddleware,
   adminController.unbanUser
 );
+router.get('/test', authMiddleware.adminMiddleware, adminController.test);
 
 module.exports = router;

@@ -32,7 +32,6 @@ const getUsers = async (req, res) => {
       )
       .from('users')
       .where('username', username)
-      .leftJoin('user_ban', 'users.user_id', 'user_ban.user_id')
       .whereNotExists(function () {
         this.select(db.raw(1))
           .from('user_ban')
@@ -183,6 +182,7 @@ const getBanReason = async (req, res) => {
       )
       .select(
         'user_ban.ban_id',
+        'bans.report_category_id as ban_reason_id',
         'report_category_name as ban_reason',
         'ticket_status'
       )
@@ -205,12 +205,14 @@ const banAppeal = async (req, res) => {
 
   try {
     const checkBan = await db('user_ban')
-      .where('ban_id', ban_id)
-      .where('ban_active', 1)
-      .where('user_id', req.userId);
+      .where('user_ban.ban_id', ban_id)
+      .where('user_ban.ban_active', 1)
+      .where('user_ban.user_id', req.userId)
+      .leftJoin('bans', 'user_ban.ban_id', 'bans.ban_id')
+      .whereNot('bans.report_category_id', 14);
 
     if (checkBan.length === 0) {
-      return res.status(400).json({ message: 'Bad request.' });
+      return res.status(400).json({ message: 'Ban does not exist.' });
     }
 
     if (checkBan.length === 1) {

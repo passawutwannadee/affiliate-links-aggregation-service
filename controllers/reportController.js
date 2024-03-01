@@ -151,9 +151,21 @@ const getReportCategories = async (req, res) => {
   }
 
   try {
-    const getCategories = await db('report_categories')
-      .select('report_category_id', 'report_category_name')
-      .where('report_category_parent_id', report_category_parent_id);
+    let query = db('report_categories').select(
+      'report_category_id',
+      'report_category_name',
+      'report_category_name as value',
+      'report_category_name as label'
+    );
+
+    if (report_category_parent_id !== '0') {
+      query = query.where(
+        'report_category_parent_id',
+        report_category_parent_id
+      );
+    }
+
+    const getCategories = await query;
 
     return res.status(200).json(getCategories);
   } catch (err) {

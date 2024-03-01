@@ -13,6 +13,14 @@ const getProducts = async (req, res) => {
     const limit = parseInt(req.query._limit) || null;
     const page = parseInt(req.query._page) || 1;
     const offset = (page - 1) * limit;
+    let category_id = parseInt(req.query.category_id);
+    const product_name = req.query['product-name'];
+
+    if (category_id === 0) {
+      category_id = null;
+    }
+
+    console.log(category_id);
 
     if (!username && !product_id) {
       return res
@@ -51,6 +59,14 @@ const getProducts = async (req, res) => {
       query = query.limit(limit).offset(offset);
     }
 
+    if (category_id) {
+      query = query.where('products.category_id', category_id);
+    }
+
+    if (product_name) {
+      query = query.where('product_name', 'like', `%${product_name}%`);
+    }
+
     query
       .leftJoin('users', 'products.user_id', 'users.user_id')
       .groupBy('products.product_id')
@@ -71,15 +87,15 @@ const getProducts = async (req, res) => {
 
     if (products.length === 0 && product_id) {
       return res
-        .status(404)
-        .json({ status: 404, message: 'Product not found.' });
+        .status(204)
+        .json({ status: 204, message: 'Product not found.' });
     }
     products.forEach((row) => {
       row.links = row.links !== null ? row.links.split(',') : [];
     });
 
     if (limit && page) {
-      const totalCount = await db('products')
+      let query = db('products')
         .count('product_id as totalCount') // Assuming 'id' is the primary key of your table
         .first()
         .leftJoin('users', 'products.user_id', 'users.user_id')
@@ -91,6 +107,16 @@ const getProducts = async (req, res) => {
             .where('users.username', username)
             .where('user_ban.ban_active', 1);
         });
+
+      if (category_id) {
+        query = query.where('products.category_id', category_id);
+      }
+
+      if (product_name) {
+        query = query.where('product_name', 'like', `%${product_name}%`);
+      }
+
+      let totalCount = await query;
 
       console.log(totalCount.totalCount);
       const hasNextPage = totalCount.totalCount > offset + limit;
@@ -193,6 +219,7 @@ const createProduct = async (req, res) => {
       });
     }
   } catch (error) {
+    console.log(error);
     const product_image = req.file ? req.file.filename : null;
 
     if (product_image) {
@@ -204,11 +231,11 @@ const createProduct = async (req, res) => {
           if (err) {
             console.error(`Error deleting file: ${err}`);
             console.error('Error storing product in the database: ', error);
-            res.sendStatus(500);
+            return res.sendStatus(500);
           } else {
             console.log(`File ${product_image} has been successfully deleted.`);
             console.error('Error storing product in the database: ', err);
-            res.sendStatus(500);
+            return res.sendStatus(500);
           }
         });
       }
@@ -268,10 +295,10 @@ const editProducts = async (req, res) => {
         fs.unlink(filePath, (err) => {
           if (err) {
             console.error(`Error deleting file: ${err}`);
-            return res.status(404).json({ message: 'Product does not exist.' });
+            return res.status(204).json({ message: 'Product does not exist.' });
           } else {
             console.log(`File ${product_image} has been successfully deleted.`);
-            return res.status(404).json({ message: 'Product does not exist.' });
+            return res.status(204).json({ message: 'Product does not exist.' });
           }
         });
       } else {
@@ -290,8 +317,6 @@ const editProducts = async (req, res) => {
             .select('product_image')
             .where('product_id', product_id)
             .where('user_id', req.userId);
-
-          console.log('test1');
 
           if (getOldImage.length === 1) {
             const oldFilePath = path.join(
@@ -392,11 +417,13 @@ const removeProducts = async (req, res) => {
 
   try {
     const getProductPicture = await db('products')
-      .select('product_image')
+      .select('product_image', 'product_name')
       .where('product_id', productId);
 
+    console.log('get product', getProductPicture[0]);
+
     if (!getProductPicture[0]) {
-      return res.status(404).json({ message: 'Product not found' });
+      return res.status(204).json({ message: 'Product not found' });
     }
 
     if (getProductPicture[0]) {
@@ -408,10 +435,6 @@ const removeProducts = async (req, res) => {
         .del()
         .where('product_id', productId)
         .where('products.user_id', req.userId);
-
-      if (deleteProduct === 0) {
-        return res.status(204).json({ message: 'Product not found' });
-      }
 
       if (deleteProduct === 1) {
         if (fs.existsSync(filePath)) {
@@ -428,6 +451,11 @@ const removeProducts = async (req, res) => {
         } else {
           console.log(`File ${productImage} does not exist.`);
         }
+
+        const deleteReports = await db('user_reports')
+          .where('product_id', productId)
+          .del();
+
         return res
           .status(200)
           .json({ message: 'Successfully deleted product.' });
