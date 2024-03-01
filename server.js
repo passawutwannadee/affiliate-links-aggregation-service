@@ -18,7 +18,7 @@ app.use(cookieParser());
 app.use(
   cors({
     credentials: true,
-    origin: 'http://192.168.1.36:5173',
+    origin: `${process.env.SITE_URL}`,
   })
 );
 
