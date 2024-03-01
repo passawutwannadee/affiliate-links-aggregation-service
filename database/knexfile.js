@@ -17,15 +17,6 @@ module.exports = {
     migrations: {
       tableName: 'migrations',
     },
-    ssl: {
-      // You can provide SSL options here
-      // For example, if you're using a self-signed certificate, you can specify it like this:
-      rejectUnauthorized: true, // Set this to false if using self-signed certificates
-      // Alternatively, you can provide the path to your CA certificate, client certificate, and client key:
-      // ca: fs.readFileSync('/path/to/ca-cert.pem'),
-      // cert: fs.readFileSync('/path/to/client-cert.pem'),
-      // key: fs.readFileSync('/path/to/client-key.pem')
-    },
   },
   production: { client: 'mysql2', connection: process.env.DATABASE_URL },
 };
