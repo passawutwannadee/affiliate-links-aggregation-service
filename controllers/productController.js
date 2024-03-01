@@ -20,7 +20,7 @@ const getProducts = async (req, res) => {
       category_id = null;
     }
 
-    console.log(category_id);
+    console.log('category', category_id);
 
     if (!username && !product_id) {
       return res

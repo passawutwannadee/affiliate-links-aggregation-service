@@ -50,8 +50,6 @@ const getUserReports = async (req, res) => {
       getUserReports = getUserReports.where('report_id', report_id);
     }
 
-    console.log(products);
-
     if (products !== 'true' && collections !== 'true') {
       getUserReports = getUserReports
         .whereNull('product_id')
