@@ -27,4 +27,5 @@ module.exports = {
       // key: fs.readFileSync('/path/to/client-key.pem')
     },
   },
+  production: { client: 'mysql2', connection: process.env.DATABASE_URL },
 };

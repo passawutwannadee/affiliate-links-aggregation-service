@@ -41,7 +41,7 @@ const getUsers = async (req, res) => {
       });
     const users = await query;
 
-    console.log(users.length);
+    console.log('user', users.length);
 
     if (users.length === 0) {
       return res.status(404).json({ status: 404, message: 'User not found.' });
@@ -67,13 +67,10 @@ const editProfilePicture = async (req, res) => {
       } else {
         try {
           const profile_picture = req.file ? req.file.filename : null;
-          console.log(req.file);
 
           const profile_data = {
             profile_picture: profile_picture,
           };
-
-          console.log(req.userId);
 
           const insertProfilePicture = await db('users')
             .update(profile_data)
