@@ -204,6 +204,8 @@ const createProduct = async (req, res) => {
         .returning('product_id')
         .insert(product_data);
 
+      req.body.productId = insertProductResult;
+
       for (let i = 0; i < product_links.length; i++) {
         const link_data = {
           product_id: insertProductResult,
