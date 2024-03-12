@@ -1,5 +1,6 @@
 const multer = require('multer');
 const fs = require('fs');
+const uuid = require('uuid');
 
 module.exports = multerConfig = {
   config: {
@@ -17,12 +18,12 @@ module.exports = multerConfig = {
         console.log('uploaded');
         next(
           null,
-          `${file.fieldname}-${
-            req.userId
-          }-${date.getFullYear()}-${date.getMonth()}-${date.getDate()}-${date
+          `${req.userId}-${uuid.v4().replace(/-/g, '')}-${date.getFullYear()}-${
+            date.getMonth() + 1
+          }-${date.getDate()}-${date
             .toTimeString()
             .split(' ')[0]
-            .replaceAll(':', '-')}.${ext}`
+            .replaceAll(':', '')}.${ext}`
         );
       },
     }),

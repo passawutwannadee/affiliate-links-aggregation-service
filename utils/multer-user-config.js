@@ -14,7 +14,7 @@ module.exports = multerConfig = {
       },
       filename: (req, file, next) => {
         const ext = file.mimetype.split('/')[1];
-        next(null, `${file.fieldname}-${req.userId}.${ext}`);
+        next(null, `${req.userId}.${ext}`);
       },
     }),
     limits: { fileSize: 20 * 1024 * 1024 }, // 20MB
