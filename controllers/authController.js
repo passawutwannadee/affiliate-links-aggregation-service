@@ -52,17 +52,19 @@ const register = async (req, res) => {
     // salt password 10 rounds
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // Generate a unique verification token for the user
-    const email_verify_token = uuid.v4();
-
     // insert user
     const result = await db('users').insert({
       email,
       password: hashedPassword,
       display_name,
       username,
-      email_verify_token,
     });
+
+    const token = jwt.sign({ userId: req.userId }, process.env.VERIFY_SECRET, {
+      expiresIn: '24h',
+    });
+
+    const encodedToken = encodeURIComponent(token);
 
     if (result.length === 1) {
       // Send a verification email to the user
@@ -70,7 +72,7 @@ const register = async (req, res) => {
         from: process.env.EMAIL_USER, // Your email address
         to: email,
         subject: 'Email Verification',
-        text: `To verify your email, click the following link: ${process.env.SITE_URL}/verify-email/${email_verify_token}`,
+        text: `To verify your email, click the following link: ${process.env.SITE_URL}/verify-email/verify?token=${token}`,
       };
 
       transporter.sendMail(mailOptions, (error, info) => {
@@ -227,32 +229,41 @@ const changePassword = async (req, res) => {
 
 const sendVerifyEmail = async (req, res) => {
   try {
-    const getToken = await db('users')
-      .select('email_verify_token', 'email')
+    const token = jwt.sign({ userId: req.userId }, process.env.VERIFY_SECRET, {
+      expiresIn: '24h',
+    });
+
+    const getUser = await db('users')
+      .select('email', 'email_verify')
       .where('user_id', req.userId);
 
-    console.log(getToken[0] === 1);
+    console.log(getUser[0]);
 
-    // Send a verification email to the user
-    const mailOptions = {
-      from: process.env.EMAIL_USER, // Your email address
-      to: getToken[0].email,
-      subject: 'Email Verification',
-      text: `To verify your email, click the following link: ${process.env.SITE_URL}/verify-email/${getToken[0].email_verify_token}`,
-    };
+    if (getUser[0].email_verify === 0) {
+      // Send a verification email to the user
+      const mailOptions = {
+        from: process.env.EMAIL_USER, // Your email address
+        to: getUser[0].email,
+        subject: 'Email Verification',
+        text: `To verify your email, click the following link: ${process.env.SITE_URL}/verify-email/verify?token=${token}`,
+      };
 
-    transporter.sendMail(mailOptions, (error, info) => {
-      if (error) {
-        return res.status(500).json({
-          message: 'An error occurred while sending the verification email',
+      transporter.sendMail(mailOptions, (error, info) => {
+        if (error) {
+          return res.status(500).json({
+            message: 'An error occurred while sending the verification email',
+          });
+        }
+
+        return res.status(201).json({
+          message: 'Check your email for verification.',
         });
-      }
-
-      return res.status(201).json({
-        message: 'Check your email for verification.',
       });
-    });
+    } else {
+      return res.status(409).json({ message: 'Email already verified' });
+    }
   } catch (err) {
+    console.log(err);
     return res.status(500).json({ message: err });
   }
 };
@@ -266,25 +277,35 @@ const patchVerifyEmail = async (req, res) => {
   }
 
   try {
-    const getUser = await db('users')
-      .select('user_id')
-      .where('email_verify_token', email_verify_token);
+    jwt.verify(
+      email_verify_token,
+      process.env.VERIFY_SECRET,
+      async (err, decoded) => {
+        if (err) {
+          return res.status(401).json({ message: 'Invalid token' });
+        } else {
+          const getUser = await db('users')
+            .where('user_id', decoded.userId)
+            .select('email_verify');
 
-    if (getUser[0]) {
-      console.log('istrue');
-      const verify = await db('users')
-        .where('user_id', getUser[0].user_id)
-        .update({
-          email_verify_token: null,
-          email_verify: 1,
-        });
-      res.status(200).json({ message: 'Successfully verified email.' });
-    } else {
-      res.status(404).json({ message: "Token doesn't exist." });
-    }
+          if (getUser[0].email_verify === 0) {
+            const verify = await db('users')
+              .where('user_id', decoded.userId)
+              .update({
+                email_verify: 1,
+              });
+            return res
+              .status(200)
+              .json({ message: 'Successfully verified email' });
+          } else {
+            return res.status(409).json({ message: 'Email already verified' });
+          }
+        }
+      }
+    );
   } catch (err) {
     console.log(err);
-    return res.status(500).json({ message: err });
+    return res.status(500).json({ message: 'Internal Server Error' });
   }
 };
 
