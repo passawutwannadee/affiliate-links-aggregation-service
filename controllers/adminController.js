@@ -17,7 +17,7 @@ const getUserReports = async (req, res) => {
   try {
     let getUserReports = db('user_reports')
       .select(
-        'report_id',
+        'user_reports.report_id',
         'reporter_email',
         'report_information',
         'user_reports.ticket_status_id',
@@ -53,24 +53,54 @@ const getUserReports = async (req, res) => {
     if (products !== 'true' && collections !== 'true') {
       getUserReports = getUserReports
         .whereNull('product_id')
-        .whereNull('collection_id');
+        .whereNull('collection_id')
+        .select(
+          'ban_reason_categories.report_category_name as ban_reason',
+          'bans.ban_reason_detail'
+        )
+        .leftJoin('bans', 'user_reports.report_id', 'bans.report_id')
+        .leftJoin(
+          'report_categories as ban_reason_categories',
+          'bans.report_category_id',
+          'ban_reason_categories.report_category_id'
+        );
     }
 
     if (products === 'true') {
       getUserReports = getUserReports
         .whereNotNull('product_id')
-        .select('report_category_name as product_report_category');
+        .select(
+          'report_categories.report_category_name as product_report_category',
+          'warn_reason_categories.report_category_name as warn_reason',
+          'warns.warn_reason_detail'
+        )
+        .leftJoin('warns', 'user_reports.report_id', 'warns.report_id')
+        .leftJoin(
+          'report_categories as warn_reason_categories',
+          'warns.report_category_id',
+          'warn_reason_categories.report_category_id'
+        );
     }
 
     if (collections === 'true') {
       getUserReports = getUserReports
         .whereNotNull('collection_id')
-        .select('report_category_name as collection_report_category');
+        .select(
+          'report_categories.report_category_name as collection_report_category',
+          'warn_reason_categories.report_category_name as warn_reason',
+          'warns.warn_reason_detail'
+        )
+        .leftJoin('warns', 'user_reports.report_id', 'warns.report_id')
+        .leftJoin(
+          'report_categories as warn_reason_categories',
+          'warns.report_category_id',
+          'warn_reason_categories.report_category_id'
+        );
     }
 
     if (collections !== 'true' && products !== 'true') {
       getUserReports = getUserReports.select(
-        'report_category_name as user_report_category'
+        'report_categories.report_category_name as user_report_category'
       );
     }
 
@@ -109,6 +139,7 @@ const banUser = async (req, res) => {
         .insert({
           report_category_id: report_category_id,
           ban_reason_detail: ban_reason_detail,
+          report_id: report_id,
         })
         .returning('ban_id');
 
@@ -180,6 +211,9 @@ const warnUser = async (req, res) => {
           .where('product_id', productId);
 
         if (deleteProduct === 0) {
+          const resolved = await db('user_reports')
+            .update({ ticket_status_id: 3 })
+            .where('report_id', report_id);
           return res.status(204).json({ message: 'Product not found' });
         }
 
@@ -256,6 +290,9 @@ const warnUser = async (req, res) => {
           .where('product_id', product_id);
 
         if (deleteProduct === 0) {
+          const resolved = await db('user_reports')
+            .update({ ticket_status_id: 3 })
+            .where('report_id', report_id);
           return res.status(204).json({ message: 'Product not found' });
         }
 
@@ -279,6 +316,7 @@ const warnUser = async (req, res) => {
               report_category_id: report_category_id,
               warn_reason_detail: warn_reason_detail,
               user_id: user_id,
+              report_id: report_id,
             })
             .returning('warn_id');
 
@@ -361,6 +399,9 @@ const warnUser = async (req, res) => {
         .where('collection_id', collection_id);
 
       if (deleteCollection === 0) {
+        const resolved = await db('user_reports')
+          .update({ ticket_status_id: 3 })
+          .where('report_id', report_id);
         return res.status(204).json({ message: 'Collection not found' });
       }
 
@@ -370,6 +411,7 @@ const warnUser = async (req, res) => {
             report_category_id: report_category_id,
             warn_reason_detail: warn_reason_detail,
             user_id: user_id,
+            report_id: report_id,
           })
           .returning('warn_id');
 
@@ -480,7 +522,8 @@ const getBanAppeals = async (req, res) => {
         'display_name',
         'ban_appeals.ban_id',
         'report_category_name as ban_reason',
-        'ban_reason_detail'
+        'ban_reason_detail',
+        'unban_reason_detail'
       );
 
     return res.status(200).json(banAppealQuerry); //

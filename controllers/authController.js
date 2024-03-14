@@ -3,6 +3,7 @@ const bcrypt = require('bcrypt');
 const db = require('../database/db');
 const uuid = require('uuid');
 const transporter = require('../utils/email');
+const emailVerification = require('../utils/templates/verificationEmail');
 
 // Register function
 const register = async (req, res) => {
@@ -53,41 +54,47 @@ const register = async (req, res) => {
     const hashedPassword = await bcrypt.hash(password, 10);
 
     // insert user
-    const result = await db('users').insert({
-      email,
-      password: hashedPassword,
-      display_name,
-      username,
-    });
+    const result = await db('users')
+      .insert({
+        email,
+        password: hashedPassword,
+        display_name,
+        username,
+      })
+      .returning('user_id');
 
-    const token = jwt.sign({ userId: req.userId }, process.env.VERIFY_SECRET, {
+    const token = jwt.sign({ userId: result[0] }, process.env.VERIFY_SECRET, {
       expiresIn: '24h',
     });
 
-    const encodedToken = encodeURIComponent(token);
-
     if (result.length === 1) {
       // Send a verification email to the user
-      const mailOptions = {
-        from: process.env.EMAIL_USER, // Your email address
-        to: email,
-        subject: 'Email Verification',
-        text: `To verify your email, click the following link: ${process.env.SITE_URL}/verify-email/verify?token=${token}`,
-      };
+      // const mailOptions = {
+      //   from: process.env.EMAIL_USER, // Your email address
+      //   to: email,
+      //   subject: 'Email Verification',
+      //   text: `To verify your email, click the following link: ${process.env.SITE_URL}/verify-email/verify?token=${token}`,
+      // };
 
-      transporter.sendMail(mailOptions, (error, info) => {
-        if (error) {
-          console.error(error);
-          return res.status(500).json({
-            message: 'An error occurred while sending the verification email',
-          });
-        }
+      // transporter.sendMail(mailOptions, (error, info) => {
+      //   if (error) {
+      //     console.error(error);
+      //     return res.status(500).json({
+      //       message: 'An error occurred while sending the verification email',
+      //     });
+      //   }
 
-        console.log(`Verification email sent: ${info.response}`);
-        return res.status(201).json({
-          message:
-            'User registered successfully. Check your email for verification.',
-        });
+      //   console.log(`Verification email sent: ${info.response}`);
+      //   return res.status(201).json({
+      //     message:
+      //       'User registered successfully. Check your email for verification.',
+      //   });
+      // });
+
+      await emailVerification(username, token, email);
+      return res.status(201).json({
+        message:
+          'User registered successfully. Check your email for verification.',
       });
     } else {
       return res.status(500).json({ message: err });
@@ -234,30 +241,32 @@ const sendVerifyEmail = async (req, res) => {
     });
 
     const getUser = await db('users')
-      .select('email', 'email_verify')
+      .select('username', 'email', 'email_verify')
       .where('user_id', req.userId);
 
     console.log(getUser[0]);
 
     if (getUser[0].email_verify === 0) {
       // Send a verification email to the user
-      const mailOptions = {
-        from: process.env.EMAIL_USER, // Your email address
-        to: getUser[0].email,
-        subject: 'Email Verification',
-        text: `To verify your email, click the following link: ${process.env.SITE_URL}/verify-email/verify?token=${token}`,
-      };
+      // const mailOptions = {
+      //   from: process.env.EMAIL_USER, // Your email address
+      //   to: getUser[0].email,
+      //   subject: 'Email Verification',
+      //   text: `To verify your email, click the following link: ${process.env.SITE_URL}/verify-email/verify?token=${token}`,
+      // };
 
-      transporter.sendMail(mailOptions, (error, info) => {
-        if (error) {
-          return res.status(500).json({
-            message: 'An error occurred while sending the verification email',
-          });
-        }
+      // transporter.sendMail(mailOptions, (error, info) => {
+      //   if (error) {
+      //     return res.status(500).json({
+      //       message: 'An error occurred while sending the verification email',
+      //     });
+      //   }
+      // });
 
-        return res.status(201).json({
-          message: 'Check your email for verification.',
-        });
+      await emailVerification(getUser[0].username, token, getUser[0].email);
+
+      return res.status(201).json({
+        message: 'Check your email for verification.',
       });
     } else {
       return res.status(409).json({ message: 'Email already verified' });
@@ -281,6 +290,7 @@ const patchVerifyEmail = async (req, res) => {
       email_verify_token,
       process.env.VERIFY_SECRET,
       async (err, decoded) => {
+        console.log(decoded);
         if (err) {
           return res.status(401).json({ message: 'Invalid token' });
         } else {
