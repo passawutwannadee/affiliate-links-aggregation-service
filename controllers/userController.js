@@ -194,10 +194,33 @@ const getBanReason = async (req, res) => {
 };
 
 const banAppeal = async (req, res) => {
+  const deletePicture = () => {
+    if (appeal_picture) {
+      const filePath = path.join('./uploads/images/appeals', appeal_picture);
+
+      if (fs.existsSync(filePath)) {
+        // Delete the file
+        fs.unlink(filePath, (err) => {
+          if (err) {
+            console.error(`Error deleting file: ${err}`);
+            console.error('Error storing product in the database: ', err);
+          } else {
+            console.log(`File ${product_image} has been successfully deleted.`);
+            console.error('Error storing product in the database: ', err);
+          }
+        });
+      }
+    }
+  };
+
   const { ban_id, appeal_information } = req.body;
 
+  const appeal_picture = req.file ? req.file.filename : null;
+
   if (!ban_id || !appeal_information) {
-    return res.status(409).json({ message: 'All fields are required' });
+    deletePicture();
+
+    return res.status(400).json({ message: 'All fields are required' });
   }
 
   try {
@@ -209,6 +232,7 @@ const banAppeal = async (req, res) => {
       .whereNot('bans.report_category_id', 14);
 
     if (checkBan.length === 0) {
+      deletePicture();
       return res.status(400).json({ message: 'Ban does not exist.' });
     }
 
@@ -219,6 +243,7 @@ const banAppeal = async (req, res) => {
       );
 
       if (checkAppeal.length > 0) {
+        deletePicture();
         return res
           .status(400)
           .json({ message: 'Appeal can only be sent once.' });
@@ -228,6 +253,7 @@ const banAppeal = async (req, res) => {
         const insertAppeal = await db('ban_appeals').insert({
           ban_id: ban_id,
           appeal_information: appeal_information,
+          appeal_picture: appeal_picture,
         });
         return res
           .status(201)
@@ -236,6 +262,7 @@ const banAppeal = async (req, res) => {
     }
   } catch (err) {
     console.log(err);
+    deletePicture();
     return res.status(500).json(err);
   }
 };

@@ -524,6 +524,10 @@ const getBanAppeals = async (req, res) => {
         'report_category_name as ban_reason',
         'ban_reason_detail',
         'unban_reason_detail'
+      )
+      .select(
+        db.raw(`CONCAT_WS("","${process.env.APPEAL_LINK_PATH}", 
+      ban_appeals.appeal_picture) as appeal_picture`)
       );
 
     return res.status(200).json(banAppealQuerry); //

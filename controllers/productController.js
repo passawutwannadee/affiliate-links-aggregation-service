@@ -155,7 +155,8 @@ const getProductCategories = async (req, res) => {
 // Create products
 const createProduct = async (req, res) => {
   try {
-    const { product_name, product_description, category_id } = req.body;
+    const { product_name, product_description, category_id, other_category } =
+      req.body;
 
     let product_links = req.body.product_links;
 
@@ -165,6 +166,16 @@ const createProduct = async (req, res) => {
 
     if (!product_image) {
       return res.status(400).json({ message: 'All fields are required' });
+    }
+
+    if (category_id === '16' && !other_category) {
+      return res.status(400).json({ message: 'All fields are required' });
+    }
+
+    if (category_id !== '16' && other_category) {
+      return res
+        .status(400)
+        .json({ message: 'Other category field not required' });
     }
 
     if (
@@ -198,6 +209,7 @@ const createProduct = async (req, res) => {
         product_image: product_image,
         user_id: req.userId,
         category_id: category_id,
+        other_category: other_category,
       };
 
       const insertProductResult = await db('products')

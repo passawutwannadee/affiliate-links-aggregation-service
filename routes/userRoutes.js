@@ -2,6 +2,9 @@ const express = require('express');
 const router = express.Router();
 const userController = require('../controllers/userController');
 const authMiddleware = require('../middlewares/authMiddleware');
+const multerConfig = require('../utils/multer-appeal-config');
+const multer = require('multer');
+const upload = multer(multerConfig.config).single(multerConfig.keyUpload);
 
 // Get Products
 router.get('/', userController.getUsers);
@@ -27,6 +30,7 @@ router.get(
 router.post(
   '/ban/appeal',
   authMiddleware.privateMiddleware,
+  upload,
   userController.banAppeal
 );
 
