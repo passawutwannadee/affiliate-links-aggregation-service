@@ -79,7 +79,7 @@ const getProducts = async (req, res) => {
         db.raw(
           `products.product_id, products.product_name, users.display_name, users.username, CONCAT("${process.env.USER_LINK_PATH}", 
         users.profile_picture) as profile_picture, products.product_description, CONCAT("${process.env.PRODUCT_LINK_PATH}", 
-        products.product_image) as product_image, products.category_id , GROUP_CONCAT(product_links.link) as links`
+        products.product_image) as product_image, products.category_id, products.other_category, GROUP_CONCAT(product_links.link) as links`
         )
       );
 
@@ -169,10 +169,29 @@ const createProduct = async (req, res) => {
     }
 
     if (category_id === '16' && !other_category) {
-      return res.status(400).json({ message: 'All fields are required' });
+      if (fs.existsSync(filePath)) {
+        // Delete the file
+        fs.unlink(filePath, (err) => {
+          if (err) {
+            console.error(`Error deleting file: ${err}`);
+            return res.status(400).json({ message: 'All fields are required' });
+          } else {
+            return res.status(400).json({ message: 'All fields are required' });
+          }
+        });
+      }
     }
 
     if (category_id !== '16' && other_category) {
+      if (fs.existsSync(filePath)) {
+        // Delete the file
+        fs.unlink(filePath, (err) => {
+          if (err) {
+            console.error(`Error deleting file: ${err}`);
+            return res.status(400).json({ message: 'All fields are required' });
+          }
+        });
+      }
       return res
         .status(400)
         .json({ message: 'Other category field not required' });
@@ -261,8 +280,13 @@ const createProduct = async (req, res) => {
 
 // Edit products
 const editProducts = async (req, res) => {
-  const { product_id, product_name, product_description, category_id } =
-    req.body;
+  let {
+    product_id,
+    product_name,
+    product_description,
+    category_id,
+    other_category,
+  } = req.body;
 
   let product_links = req.body.product_links;
 
@@ -272,12 +296,43 @@ const editProducts = async (req, res) => {
 
   const product_image = req.file ? req.file.filename : null;
 
-  console.log(product_image);
-
   let filePath;
 
   if (product_image) {
     filePath = path.join('./uploads/images/products', product_image);
+  }
+
+  if (category_id === '16' && !other_category) {
+    if (fs.existsSync(filePath)) {
+      // Delete the file
+      fs.unlink(filePath, (err) => {
+        if (err) {
+          console.error(`Error deleting file: ${err}`);
+          return res.status(400).json({ message: 'All fields are required' });
+        } else {
+          return res.status(400).json({ message: 'All fields are required' });
+        }
+      });
+    }
+  }
+
+  if (category_id !== '16' && other_category) {
+    if (fs.existsSync(filePath)) {
+      // Delete the file
+      fs.unlink(filePath, (err) => {
+        if (err) {
+          console.error(`Error deleting file: ${err}`);
+          return res.status(400).json({ message: 'All fields are required' });
+        }
+      });
+    }
+    return res
+      .status(400)
+      .json({ message: 'Other category field not required' });
+  }
+
+  if (other_category === undefined) {
+    other_category = null;
   }
 
   try {
@@ -318,6 +373,8 @@ const editProducts = async (req, res) => {
       } else {
         let product_data;
 
+        console.log('other cat :', other_category);
+
         if (product_image) {
           product_data = {
             product_name: product_name,
@@ -325,6 +382,7 @@ const editProducts = async (req, res) => {
             product_image: product_image,
             user_id: req.userId,
             category_id: category_id,
+            other_category: other_category,
           };
 
           const getOldImage = await db('products')
@@ -361,6 +419,7 @@ const editProducts = async (req, res) => {
             product_description: product_description,
             user_id: req.userId,
             category_id: category_id,
+            other_category: other_category,
           };
         }
 
