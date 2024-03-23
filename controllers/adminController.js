@@ -23,7 +23,10 @@ const getUserReports = async (req, res) => {
         'user_reports.ticket_status_id',
         'ticket_status',
         'product_id',
-        'collection_id'
+        'collection_id',
+        db.raw(
+          'DATE_FORMAT(user_reports.created_at, "%Y-%m-%d") as report_date'
+        )
       )
       .select('user_reports.  user_id', 'username')
       .leftJoin('users', 'user_reports.user_id', 'users.user_id')
@@ -523,7 +526,8 @@ const getBanAppeals = async (req, res) => {
         'ban_appeals.ban_id',
         'report_category_name as ban_reason',
         'ban_reason_detail',
-        'unban_reason_detail'
+        'unban_reason_detail',
+        db.raw('DATE_FORMAT(ban_appeals.created_at, "%Y-%m-%d") as appeal_date')
       )
       .select(
         db.raw(`CONCAT_WS("","${process.env.APPEAL_LINK_PATH}", 
