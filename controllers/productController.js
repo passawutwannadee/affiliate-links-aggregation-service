@@ -75,11 +75,12 @@ const getProducts = async (req, res) => {
         'products.product_id',
         'product_links.product_id'
       )
+      .leftJoin('categories', 'products.category_id', 'categories.category_id')
       .select(
         db.raw(
           `products.product_id, products.product_name, users.display_name, users.username, CONCAT("${process.env.USER_LINK_PATH}", 
         users.profile_picture) as profile_picture, products.product_description, CONCAT("${process.env.PRODUCT_LINK_PATH}", 
-        products.product_image) as product_image, products.category_id, products.other_category, GROUP_CONCAT(product_links.link) as links`
+        products.product_image) as product_image, products.category_id, categories.category_name, products.other_category, GROUP_CONCAT(product_links.link) as links`
         )
       );
 

@@ -39,7 +39,7 @@ const resetPasswordEmail = async (token, userEmail) => {
               Reset Password
             </mj-text>
             <mj-text color="#637381" font-size="16px">
-              To reset your password, click <a href="${process.env.SITE_URL}/reset-password?token=${token}">here</a>
+              To reset your password, <a href="${process.env.SITE_URL}/reset-password?token=${token}">click here</a>
             </mj-text>
           </mj-column>
         </mj-section>

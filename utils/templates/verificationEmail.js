@@ -42,7 +42,7 @@ const verificationEmail = async (username, token, userEmail) => {
               Hi ${username},
             </mj-text>
             <mj-text color="#637381" font-size="16px">
-              To verify your email, click <a href="${process.env.SITE_URL}/verify-email/verify?token=${token}">here</a>
+              To verify your email, <a href="${process.env.SITE_URL}/verify-email/verify?token=${token}">click here</a>
             </mj-text>
           </mj-column>
         </mj-section>
