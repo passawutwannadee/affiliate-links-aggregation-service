@@ -34,11 +34,11 @@ const getCollections = async (req, res) => {
         )
         .whereNotExists(function () {
           this.select(db.raw(1))
-            .from('user_ban')
-            .leftJoin('users', 'user_ban.user_id', 'users.user_id')
+            .from('bans')
+            .leftJoin('users', 'bans.user_id', 'users.user_id')
             .leftJoin('collections', 'collections.user_id', 'users.user_id')
             .where('collections.collection_id', collectionId)
-            .where('user_ban.ban_active', 1);
+            .where('bans.ban_active', 1);
         });
 
       const collection = await query;
@@ -106,10 +106,10 @@ const getCollections = async (req, res) => {
         )
         .whereNotExists(function () {
           this.select(db.raw(1))
-            .from('user_ban')
-            .leftJoin('users', 'user_ban.user_id', 'users.user_id')
+            .from('bans')
+            .leftJoin('users', 'bans.user_id', 'users.user_id')
             .where('users.username', username)
-            .where('user_ban.ban_active', 1);
+            .where('bans.ban_active', 1);
         });
 
       if (limit && page) {
@@ -135,10 +135,10 @@ const getCollections = async (req, res) => {
           .where('users.username', username)
           .whereNotExists(function () {
             this.select(db.raw(1))
-              .from('user_ban')
-              .leftJoin('users', 'user_ban.user_id', 'users.user_id')
+              .from('bans')
+              .leftJoin('users', 'bans.user_id', 'users.user_id')
               .where('users.username', username)
-              .where('user_ban.ban_active', 1);
+              .where('bans.ban_active', 1);
           });
 
         if (collectionName) {

@@ -15,6 +15,8 @@ router.patch(
   authMiddleware.privateMiddleware,
   authController.changePassword
 );
+router.post('/forgot-password', authController.forgotPassword);
+router.patch('/reset-password', authController.resetPassword);
 // Send Email
 router.post(
   '/verify-email',

@@ -1,12 +1,12 @@
 const mjml2html = require('mjml');
 const transporter = require('../email');
 
-const verificationEmail = async (username, token, userEmail) => {
+const resetPasswordEmail = async (token, userEmail) => {
   const mjmlContent = `
   <mjml>
   <mj-head>
-    <mj-title>Email Verification</mj-title>
-    <mj-preview>Email Verification</mj-preview>
+    <mj-title>Reset Password</mj-title>
+    <mj-preview>Reset Password</mj-preview>
     <mj-attributes>
       <mj-all font-family="'Helvetica Neue', Helvetica, Arial, sans-serif"></mj-all>
       <mj-text font-weight="400" font-size="16px" color="#000000" line-height="24px" font-family="'Helvetica Neue', Helvetica, Arial, sans-serif"></mj-text>
@@ -36,13 +36,10 @@ const verificationEmail = async (username, token, userEmail) => {
         <mj-section background-color="#ffffff" padding-left="15px" padding-right="15px">
           <mj-column width="100%">
             <mj-text color="#212b35" font-weight="bold" font-size="20px">
-              Email Verification
+              Reset Password
             </mj-text>
             <mj-text color="#637381" font-size="16px">
-              Hi ${username},
-            </mj-text>
-            <mj-text color="#637381" font-size="16px">
-              To verify your email, <a href="${process.env.SITE_URL}/verify-email/verify?token=${token}">click here</a>
+              To reset your password, <a href="${process.env.SITE_URL}/reset-password?token=${token}">click here</a>
             </mj-text>
           </mj-column>
         </mj-section>
@@ -60,7 +57,7 @@ const verificationEmail = async (username, token, userEmail) => {
     const mailOptions = {
       from: process.env.EMAIL_USER,
       to: userEmail,
-      subject: `Email Verification`,
+      subject: `Reset Password`,
       html: html,
     };
 
@@ -69,10 +66,9 @@ const verificationEmail = async (username, token, userEmail) => {
     console.log('Email sent:');
     console.log(info.response);
   } catch (error) {
-    return res.status(500).json({
-      message: 'An error occurred while sending the verification email',
-    });
+    console.log('Error occurred:');
+    console.log(error.message);
   }
 };
 
-module.exports = verificationEmail;
+module.exports = resetPasswordEmail;

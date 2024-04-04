@@ -4,6 +4,8 @@ const db = require('../database/db');
 const uuid = require('uuid');
 const transporter = require('../utils/email');
 const emailVerification = require('../utils/templates/verificationEmail');
+const resetPasswordEmail = require('../utils/templates/resetPasswordEmail');
+const { reset } = require('nodemon');
 
 // Register function
 const register = async (req, res) => {
@@ -234,6 +236,91 @@ const changePassword = async (req, res) => {
   }
 };
 
+const forgotPassword = async (req, res) => {
+  const { email } = req.body;
+
+  if (!email) {
+    return res.status(400).json({ message: 'All fields are required' });
+  }
+
+  try {
+    const getUser = await db('users')
+      .select('user_id', 'password')
+      .where('email', email);
+
+    if (getUser.length === 0) {
+      return res.status(204).json({ message: 'Email not found' });
+    }
+
+    if (getUser.length === 1) {
+      const token = jwt.sign(
+        { userId: getUser[0].user_id },
+        process.env.FORGOT_SECRET,
+        {
+          expiresIn: '10m',
+        }
+      );
+
+      // Send a verification email to the user
+      resetPasswordEmail(token, email);
+
+      return res
+        .status(201)
+        .json({ message: 'Check your email for reset password' });
+    }
+  } catch (err) {
+    console.log(err);
+    return res.status(500).json({ message: 'Internal server error' });
+  }
+};
+
+const resetPassword = async (req, res) => {
+  const { reset_password_token, new_password } = req.body;
+
+  if (!reset_password_token || !new_password) {
+    return res.status(400).json({ message: 'All fields are required' });
+  }
+
+  try {
+    jwt.verify(
+      reset_password_token,
+      process.env.FORGOT_SECRET,
+      async (err, decoded) => {
+        if (err) {
+          return res.status(406).json({ message: 'Invalid token' });
+        } else {
+          // Password complexity regex pattern
+          // Password must be at least 8 characters long and contain at least one number, one lowercase letter, one uppercase letter, and one symbol (@$!%*?&)
+          const passwordPattern =
+            /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
+
+          // Check if the password meets the complexity requirements
+          if (!passwordPattern.test(new_password)) {
+            return res.status(400).json({
+              message:
+                'Password must be at least 8 characters long and contain at least one number, one lowercase letter, one uppercase letter, and one symbol (@$!%*?&)',
+            });
+          }
+
+          // salt password 10 rounds
+          const hashedPassword = await bcrypt.hash(new_password, 10);
+
+          await db('users').where('user_id', decoded.userId).update({
+            password: hashedPassword,
+          });
+
+          return res
+            .status(200)
+            .json({ message: 'Password reset successfully' });
+        }
+      }
+    );
+  } catch (err) {
+    console.log(err);
+    return res.status(500).json({ message: 'Internal Server Error' });
+  }
+};
+
 const sendVerifyEmail = async (req, res) => {
   try {
     const token = jwt.sign({ userId: req.userId }, process.env.VERIFY_SECRET, {
@@ -354,7 +441,7 @@ const getAccount = async (req, res) => {
       )
       .where('user_id', req.userId);
 
-    const getIsBanned = await db('user_ban')
+    const getIsBanned = await db('bans')
       .select('*')
       .where('user_id', req.userId)
       .where('ban_active', 1);
@@ -383,6 +470,8 @@ module.exports = {
   login,
   logout,
   changePassword,
+  forgotPassword,
+  resetPassword,
   sendVerifyEmail,
   patchVerifyEmail,
   getAccount,
