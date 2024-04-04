@@ -129,7 +129,7 @@ const banUser = async (req, res) => {
       return res.status(400).json({ message: 'You cannot ban yourself.' });
     }
 
-    const checkBan = await db('user_ban')
+    const checkBan = await db('bans')
       .where('ban_active', 1)
       .where('user_id', user_id);
 
@@ -143,13 +143,9 @@ const banUser = async (req, res) => {
           report_category_id: report_category_id,
           ban_reason_detail: ban_reason_detail,
           report_id: report_id,
+          user_id: user_id,
         })
         .returning('ban_id');
-
-      const banUser = await db('user_ban').insert({
-        user_id: user_id,
-        ban_id: banReason[0],
-      });
 
       const resolved = await db('user_reports')
         .update({ ticket_status_id: 2 })
@@ -266,7 +262,7 @@ const warnUser = async (req, res) => {
       return res.status(400).json({ message: 'You cannot ban yourself.' });
     }
 
-    const checkBan = await db('user_ban')
+    const checkBan = await db('bans')
       .where('ban_active', 1)
       .where('user_id', user_id);
 
@@ -366,17 +362,13 @@ const warnUser = async (req, res) => {
               .insert({
                 report_category_id: 14,
                 ban_reason_detail: 'This user recieved 3 or more warnings.',
+                user_id: user_id,
               })
               .returning('ban_id');
 
             const getCategory = await db('report_categories')
               .select('report_category_name')
               .where('report_category_id', 14);
-
-            const banUser = await db('user_ban').insert({
-              user_id: user_id,
-              ban_id: banReason[0],
-            });
 
             await suspendedEmail(
               getWarn[0].username,
@@ -461,17 +453,13 @@ const warnUser = async (req, res) => {
             .insert({
               report_category_id: 14,
               ban_reason_detail: 'This user recieved 3 or more warnings.',
+              user_id: user_id,
             })
             .returning('ban_id');
 
           const getCategory = await db('report_categories')
             .select('report_category_name')
             .where('report_category_id', 14);
-
-          const banUser = await db('user_ban').insert({
-            user_id: user_id,
-            ban_id: banReason[0],
-          });
 
           await suspendedEmail(
             getWarn[0].username,
@@ -502,9 +490,8 @@ const warnUser = async (req, res) => {
 const getBanAppeals = async (req, res) => {
   try {
     const banAppealQuerry = await db('ban_appeals')
-      .leftJoin('user_ban', 'ban_appeals.ban_id', 'user_ban.ban_id')
-      .leftJoin('bans', 'user_ban.ban_id', 'bans.ban_id')
-      .leftJoin('users', 'user_ban.user_id', 'users.user_id')
+      .leftJoin('bans', 'ban_appeals.ban_id', 'bans.ban_id')
+      .leftJoin('users', 'bans.user_id', 'users.user_id')
       .leftJoin(
         'report_categories',
         'bans.report_category_id',
@@ -520,7 +507,7 @@ const getBanAppeals = async (req, res) => {
         'appeal_information',
         'ban_appeals.ticket_status_id',
         'ticket_status',
-        'user_ban.user_id',
+        'bans.user_id',
         'username',
         'display_name',
         'ban_appeals.ban_id',
@@ -549,7 +536,7 @@ const unbanUser = async (req, res) => {
   }
 
   try {
-    const unbanQuery = await db('user_ban')
+    const unbanQuery = await db('bans')
       .update({ ban_active: 0 })
       .where('user_id', user_id)
       .where('ban_id', ban_id);

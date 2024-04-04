@@ -35,11 +35,11 @@ const getProducts = async (req, res) => {
         .where('products.product_id', product_id)
         .whereNotExists(function () {
           this.select(db.raw(1))
-            .from('user_ban')
-            .leftJoin('users', 'user_ban.user_id', 'users.user_id')
+            .from('bans')
+            .leftJoin('users', 'bans.user_id', 'users.user_id')
             .leftJoin('products', 'users.user_id', 'products.user_id')
             .where('products.product_id', product_id)
-            .where('user_ban.ban_active', 1);
+            .where('bans.ban_active', 1);
         });
     }
 
@@ -48,10 +48,10 @@ const getProducts = async (req, res) => {
         .where('users.username', username)
         .whereNotExists(function () {
           this.select(db.raw(1))
-            .from('user_ban')
-            .leftJoin('users', 'user_ban.user_id', 'users.user_id')
+            .from('bans')
+            .leftJoin('users', 'bans.user_id', 'users.user_id')
             .where('users.username', username)
-            .where('user_ban.ban_active', 1);
+            .where('bans.ban_active', 1);
         });
     }
 
@@ -97,16 +97,16 @@ const getProducts = async (req, res) => {
 
     if (limit && page) {
       let query = db('products')
-        .count('product_id as totalCount') // Assuming 'id' is the primary key of your table
+        .count('product_id as totalCount')
         .first()
         .leftJoin('users', 'products.user_id', 'users.user_id')
         .where('users.username', username)
         .whereNotExists(function () {
           this.select(db.raw(1))
-            .from('user_ban')
-            .leftJoin('users', 'user_ban.user_id', 'users.user_id')
+            .from('bans')
+            .leftJoin('users', 'bans.user_id', 'users.user_id')
             .where('users.username', username)
-            .where('user_ban.ban_active', 1);
+            .where('bans.ban_active', 1);
         });
 
       if (category_id) {

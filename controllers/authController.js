@@ -441,7 +441,7 @@ const getAccount = async (req, res) => {
       )
       .where('user_id', req.userId);
 
-    const getIsBanned = await db('user_ban')
+    const getIsBanned = await db('bans')
       .select('*')
       .where('user_id', req.userId)
       .where('ban_active', 1);
