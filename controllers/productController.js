@@ -244,7 +244,10 @@ const createProduct = async (req, res) => {
           link: product_links[i],
         };
 
-        const insertLinkResult = await db('product_links').insert(link_data);
+        const insertLinkResult = await db('product_links')
+          .insert(link_data)
+          .onConflict('link')
+          .ignore();
       }
 
       return res.status(201).json({
