@@ -33,6 +33,7 @@ const collectionRoutes = require('./routes/collectionRoutes');
 const reportRoutes = require('./routes/reportRoutes');
 const adminRoutes = require('./routes/adminRoutes');
 const cleanWarns = require('./script/cleanWarns');
+const cleanCollections = require('./script/cleanCollections');
 
 // Use Routes
 app.use('/auth', authRoutes);
@@ -42,6 +43,7 @@ app.use('/collections', collectionRoutes);
 app.use('/reports', reportRoutes);
 app.use('/admin', adminRoutes);
 
+cleanCollections.cleanCollections();
 cleanWarns.cleanWarns();
 
 // Listen Port
